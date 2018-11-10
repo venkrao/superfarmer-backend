@@ -25,8 +25,7 @@ class Users(models.Model):
     email_address = models.EmailField(max_length=254, unique=True)
     name = models.CharField(max_length=128)
     member_since = models.DateTimeField(default=now)
-    google_user_id = models.CharField(null=True, blank=True, max_length=124)
-    fb_user_id= models.CharField(null=True, blank=True, max_length=124)
+
     registration_status = models.ForeignKey(RegistrationStatus, on_delete=models.CASCADE)
 
 

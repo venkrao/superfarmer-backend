@@ -36,14 +36,16 @@ class UserProfileView(CsrfExemptMixin, JSONResponseMixin, APIView):
         pass
 
     def post(self, request, *args, **kwargs):
-        print("request user " + request.user)
+        print(request.user)
         try:
-            # TODO: IMPLEMENT is_token_valid()
-            userprofile = UserProfile(user_id=Users.objects.get(user_id=request.data.get("user_id")), about_me="",
+            print(request.user)
+            userprofile = UserProfile(user_id=Users.objects.get(email_address=request.user.email), about_me="Default about me",
                                         address=request.data.get("address"), city=request.data.get("city"), state=request.data.get("state"),
                                         postal_code="576200", phone_primary=request.data.get("phone_primary"))
 
+            # TODO:  IMPLEMENT UPDATE, NOT JUST SAVE PROFILE.
             userprofile.save()
+
             response_dict = {
                 "user_registration": "success"
             }
@@ -127,20 +129,32 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
         self.oauth_provider = None
         self.user_id = 00000000
 
-    def is_new_user(self):
+    def is_new_user(self, request):
         try:
-            user_object = Users.objects.get(email_address=self.email)
+            user_object = Users.objects.get(email_address=request.user.email)
             self.user_id = user_object.user_id
             return False
         except ObjectDoesNotExist:
             return True
 
+    def is_registration_pending(self, request):
+        try:
+            user_object = Users.objects.get(email_address=request.user.email,
+                                            registration_status=RegistrationStatus.objects.get(pk=2))
+            # If there is no exception, then, the given user's registration_status is still 2 == pending.
+            # So, return True.
+            return True
+        except ObjectDoesNotExist:
+            return False
+
+
     def register_user(self, registration_data, auth_token):
         pass
 
     def add_new_user(self, request):
-        print("request user :" + request.user)
-        new_user = Users(user_status=UserStatus.objects.get(pk=2), name=self.name, email_address=self.email,
+        print(request.user)
+        # On first login, the user is in unverified status (4); and his registration_status is unregistered(2)
+        new_user = Users(user_status=UserStatus.objects.get(pk=4), name=request.user.username, email_address=request.user.email,
                          registration_status=RegistrationStatus.objects.get(pk=2))
 
         if self.oauth_provider == "google":
@@ -152,6 +166,7 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
         new_user.save()
 
     def post(self, request, *args, **kwargs):
+        """"
         social_auth_userdata = request.data.get("social_auth_userdata")
         if social_auth_userdata:
             token = social_auth_userdata.get("token")
@@ -198,6 +213,20 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
                 status = "failed"
 
             return self.render_json_response({"user_registration": status})
+        """
+        # check if the user is new user. - self.is_new_user()
+
+        if self.is_new_user(request):
+            registration_pending = True
+            # Create an entry in Users table.
+            self.add_new_user(request)
+        else:
+            if self.is_registration_pending(request):
+                registration_pending = True
+            else:
+                registration_pending = False
+
+        return self.render_json_response({"registration_pending": registration_pending})
 
 from django.views.decorators.csrf import csrf_exempt
 
