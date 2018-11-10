@@ -25,7 +25,7 @@ router = routers.DefaultRouter()
 router.register(r'usercategory', UserCategoryView)
 router.register(r'userstatus', UserStatusView)
 router.register(r'users', UsersView)
-router.register(r'usercontactinfo', UserContactInfoView)
+
 router.register(r'product', ProductView)
 router.register(r'seller', SellerView)
 router.register(r'buyer', BuyerView)
@@ -34,13 +34,17 @@ router.register(r'productmeasuringunit', ProductMeasuringUnitView)
 router.register(r'inventoryitemstatus', InventoryItemStatusView)
 router.register(r'intentory', InventoryView)
 router.register(r'inventoryitemaddress', InventoryItemAddressView)
+router.register(r'registrationstatus', RegistrationStatusView)
 
 router.register(r'transporter', TransporterView)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'', include(router.urls)),
-    url(r'api-auth', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^auth/', include('rest_framework_social_oauth2.urls')),
-    url(r'userauth', UserAuth.as_view())
+    url(r'userauth', UserAuth.as_view()),
+    url(r'userprofile', UserProfileView.as_view()),
+    url(r'playgroundview', PlaygroundView.as_view())
 ]

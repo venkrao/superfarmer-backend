@@ -37,29 +37,44 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    'rest_framework',
     'oauth2_provider',
     'social_django',
     'rest_framework_social_oauth2',
     'corsheaders',
-    'rest_framework',
     'superfarmer.backend',
-
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
+
+
 ]
 
+
 CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ALLOW_HEADERS = (
+    'accept',
+    'accept-encoding',
+    'Authorization',
+    'token',
+    'user_id',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+
+)
 
 ROOT_URLCONF = 'superfarmer.urls'
 
@@ -81,8 +96,28 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'superfarmer.wsgi.application'
+REST_FRAMEWORK = {
+'DEFAULT_AUTHENTICATION_CLASSES': (
+        # 'oauth2_provider.ext.rest_framework.OAuth2Authentication',  # django-oauth-toolkit < 1.0.0
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # django-oauth-toolkit >= 1.0.0
+        'rest_framework_social_oauth2.authentication.SocialAuthentication',
+    )
+}
 
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.google.GooglePlusAuth',
+   'rest_framework_social_oauth2.backends.DjangoOAuth2',
+   'django.contrib.auth.backends.ModelBackend',
+)
+
+CORS_ORIGIN_ALLOW_ALL = True # TODO: only for the tests!
+
+CORS_ORIGIN_WHITELIST = (
+    'localhost:4200',
+    '127.0.0.1:4200'
+)
+
+WSGI_APPLICATION = 'superfarmer.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/2.0/ref/settings/#databases
@@ -118,26 +153,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-REST_FRAMEWORK = {
- 'DEFAULT_AUTHENTICATION_CLASSES': (
-        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
-        'rest_framework_social_oauth2.authentication.SocialAuthentication',
-    ),
-}
 
-AUTHENTICATION_BACKENDS = (
-    'rest_framework_social_oauth2.backends.DjangoOAuth2',
-    'django.contrib.auth.backends.ModelBackend',
-    'social_core.backends.google.GooglePlusAuth',
-)
 
-CORS_ORIGIN_WHITELIST = (
-    'http://localhost:4200'
 
-)
-
-SOCIAL_AUTH_GOOGLE_PLUS_KEY = 'AIzaSyBRT-U9Vc5pPitWIY3ox6Bg2NRejBvrHx0'
-SOCIAL_AUTH_GOOGLE_PLUS_SECRET = 'pRPXUi0ZoALv8bTEeMJifHaL'
+SOCIAL_AUTH_GOOGLE_PLUS_KEY = '1080575499572-0mms5aetp8ia1nidmv8bqnf4fa0usdmi.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_PLUS_SECRET = 'GnN3SUX_n5e291JXcvocSBpL'
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
@@ -158,8 +178,6 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# social auth end points
-CONVERT_TOKEN = "http://localhost:8000/auth/convert-token"
-REVOKE_TOKEN = "http://localhost:8000/auth/revoke-token"
-INVALIDATE_SESSIONS = "http://localhost:8000/auth/invalidate-sessions"
-REFRESH_TOKEN = "http://localhost:8000/auth/token"
+
+
+BACKEND_MAPPING = { "google" : "google-plus" }

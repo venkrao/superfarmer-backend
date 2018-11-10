@@ -5,26 +5,55 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.views import APIView
 from braces.views import CsrfExemptMixin, JSONResponseMixin
 from django.conf import settings
+import requests
+from django.core.exceptions import ObjectDoesNotExist
 
-class UserCategoryView(viewsets.ModelViewSet):
+
+class UsersView(viewsets.GenericViewSet):
+    def get(self, request):
+
+        pass
+
+
+class UserCategoryView(viewsets.ModelViewSet, APIView):
     queryset = UserCategory.objects.all()
     serializer_class = UserCategorySerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
-class UserStatusView(viewsets.ModelViewSet):
+
+class UserStatusView(viewsets.ModelViewSet, APIView):
     queryset = UserStatus.objects.all()
     serializer_class = UserStatusSerializer
 
-class UsersView(viewsets.ModelViewSet):
+
+class UsersView(viewsets.ModelViewSet, APIView):
     queryset = Users.objects.all()
     serializer_class = UsersSerializer
 
 
-class UserContactInfoView(viewsets.ModelViewSet):
-    queryset = UserContactInfo.objects.all()
-    serializer_class = UserContactInfoSerializer
+class UserProfileView(CsrfExemptMixin, JSONResponseMixin, APIView):
+    def __init__(self):
+        pass
 
+    def post(self, request, *args, **kwargs):
+        print("request user " + request.user)
+        try:
+            # TODO: IMPLEMENT is_token_valid()
+            userprofile = UserProfile(user_id=Users.objects.get(user_id=request.data.get("user_id")), about_me="",
+                                        address=request.data.get("address"), city=request.data.get("city"), state=request.data.get("state"),
+                                        postal_code="576200", phone_primary=request.data.get("phone_primary"))
+
+            userprofile.save()
+            response_dict = {
+                "user_registration": "success"
+            }
+        except:
+            response_dict = {
+                "user_registration": "failed"
+            }
+            raise
+
+        return self.render_json_response(context_dict=response_dict)
 
 # List of categories the web portal is supporting.
 class ProductCategoryView(viewsets.ModelViewSet):
@@ -49,6 +78,7 @@ class ProductMeasuringUnitView(viewsets.ModelViewSet):
 class SellerView(viewsets.ModelViewSet):
     queryset = Seller.objects.all()
     serializer_class = SellerSerializer
+
 
 # list of buyers, with the list of products they buy.
 class BuyerView(viewsets.ModelViewSet):
@@ -79,6 +109,11 @@ class TransporterView(viewsets.ModelViewSet):
     serializer_class = TransporterSerializer
 
 
+class RegistrationStatusView(viewsets.ModelViewSet):
+    queryset = RegistrationStatus.objects.all()
+    serializer_class = RegistrationStatusSerializer
+
+
 class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
 
     def __init__(self):
@@ -88,54 +123,72 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
         self.image = None
         self.id = None
         self.provider = None
-
-    def convert_token(self, social_auth_userdata):
-        pass
+        self.oauth_provider_token = None
+        self.oauth_provider = None
+        self.user_id = 00000000
 
     def is_new_user(self):
-        if self.provider == "google":
-            if Users.objects.get(google_user_id=self.id):
-                return False
-        if self.provider == "facebook":
-            if Users.objects.get(fb_user_id=self.id):
-                return False
-
-        return True
-
+        try:
+            user_object = Users.objects.get(email_address=self.email)
+            self.user_id = user_object.user_id
+            return False
+        except ObjectDoesNotExist:
+            return True
 
     def register_user(self, registration_data, auth_token):
         pass
 
+    def add_new_user(self, request):
+        print("request user :" + request.user)
+        new_user = Users(user_status=UserStatus.objects.get(pk=2), name=self.name, email_address=self.email,
+                         registration_status=RegistrationStatus.objects.get(pk=2))
+
+        if self.oauth_provider == "google":
+            new_user.google_user_id = self.oauth_provided_user_id
+
+        if self.oauth_provider == "facebook":
+            new_user.fb_user_id = self.oauth_provided_user_id
+
+        new_user.save()
+
     def post(self, request, *args, **kwargs):
-        social_auth_userdata = request.POST.get("social_auth_userdata")
+        social_auth_userdata = request.data.get("social_auth_userdata")
         if social_auth_userdata:
-            self.name = social_auth_userdata.name
-            self.email = social_auth_userdata.email
-            self.image = social_auth_userdata.image
-            self.id = social_auth_userdata.id
-            self.provider = social_auth_userdata.provider
+            token = social_auth_userdata.get("token")
+
+            self.oauth_provider = social_auth_userdata.get("token_provider")
+
+            self.name = token.get("name")
+            self.email = token.get("email")
+            self.image = token.get("image")
+            self.oauth_provided_user_id = token.get("id")
+            self.provider = token.get("provider")
+            self.oauth_provider_token = token.get("token")
 
             # convert the social auth token into drf token - self.convert_token
-            self.converted_token = self.convert_token(social_auth_userdata)
+            self.converted_token = self.convert_token()
 
             # check if the user is new user. - self.is_new_user()
             if self.is_new_user():
                 registration_pending = True
+                # Create an entry in Users table.
+                self.add_new_user(request)
             else:
                 registration_pending = False
 
-                response_dict = {
-                    "converted_token": self.converted_token,
-                    "registration_pending": registration_pending
-                }
-                # If registration_pending, then, frontend will force the user to register, and
-                # send registration data to backend, handled by register_user()
-                return self.render_json_response(context_dict=response_dict)
+            response_dict = {
+                "converted_token": self.converted_token,
+                "user_id": self.user_id,
+                "registration_pending": registration_pending
+            }
+            # If registration_pending, then, frontend will force the user to register, and
+            # send registration data to backend, handled by register_user()
+            return self.render_json_response(context_dict=response_dict)
 
         # if not, register the user - self.register_user()
-        registration_data = request.POST.get("registration_data")
+        registration_data = request.data.get("registration_data")
         if registration_data:
-            auth_token = request.POST.get("auth_token")
+            auth_token = request.data.get("auth_token")
             if not auth_token:
                 return self.render_json_response({"user_registration": "unauthorized_request"})
 
@@ -145,3 +198,16 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
                 status = "failed"
 
             return self.render_json_response({"user_registration": status})
+
+from django.views.decorators.csrf import csrf_exempt
+
+class PlaygroundView(JSONResponseMixin, CsrfExemptMixin, APIView):
+    def __init__(self):
+        pass
+
+    @csrf_exempt
+    def post(self, request):
+        print(request.user)
+        return self.render_json_response({"HELLO": "request"})
+
+

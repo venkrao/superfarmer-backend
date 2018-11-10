@@ -13,33 +13,37 @@ class UserStatus(models.Model):
     status_id = models.AutoField(primary_key=True)
     status = models.CharField(max_length=32, unique=True)
 
+# registered/pending
+class RegistrationStatus(models.Model):
+    status_id = models.AutoField(primary_key=True)
+    status = models.CharField(max_length=32, unique=True)
+
 
 class Users(models.Model):
     user_id = models.AutoField(primary_key=True)
     user_status = models.ForeignKey(UserStatus, on_delete=models.CASCADE)
-    name = models.CharField(max_length=128)
     email_address = models.EmailField(max_length=254, unique=True)
-    phone_verified = models.BooleanField(default="No")
-    email_verified = models.BooleanField(default="No")
+    name = models.CharField(max_length=128)
     member_since = models.DateTimeField(default=now)
-    about_me = models.CharField(max_length=512)
     google_user_id = models.CharField(null=True, blank=True, max_length=124)
     fb_user_id= models.CharField(null=True, blank=True, max_length=124)
-    registration_status = models.CharField(max_length=32, default="unregistered")
+    registration_status = models.ForeignKey(RegistrationStatus, on_delete=models.CASCADE)
 
 
-class UserContactInfo(models.Model):
+class UserProfile(models.Model):
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE)
-    address_part1 = models.CharField(max_length=126)
-    address_part2 = models.CharField(max_length=126)
+    about_me = models.CharField(max_length=512)
+    address = models.CharField(max_length=126)
     city = models.CharField(max_length=64)
     state = models.CharField(max_length=64)
     country = models.CharField(max_length=64, default="India")
     postal_code = models.CharField(max_length=18)
-    latitude = models.FloatField(max_length=32)
-    longitude = models.FloatField(max_length=32)
+    latitude = models.FloatField(max_length=32, default="12.9716")
+    longitude = models.FloatField(max_length=32, default="77.5946")
     phone_primary = models.CharField(max_length=32, unique=True)
-    phone_secondary = models.CharField(max_length=18)
+
+    phone_verified = models.BooleanField(default=False)
+    email_verified = models.BooleanField(default=False)
 
 
 # List of categories the web portal is supporting.

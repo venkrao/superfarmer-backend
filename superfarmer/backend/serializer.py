@@ -1,5 +1,6 @@
 from .models import *
 from rest_framework import serializers
+from oauth2_provider.models import Application, AccessToken
 
 class UserCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,10 +20,10 @@ class UsersSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class UserContactInfoSerializer(serializers.ModelSerializer):
+class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserContactInfo
-        fields = '__all__'
+        model = UserProfile
+        fields = ["address","city", "state", "country", "phone_primary" ]
 
 
 # List of categories the web portal is supporting.
@@ -89,3 +90,7 @@ class TransporterSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class RegistrationStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RegistrationStatus
+        fields = '__all__'
