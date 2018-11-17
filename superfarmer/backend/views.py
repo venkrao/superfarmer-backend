@@ -4,9 +4,14 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.views import APIView
 from braces.views import CsrfExemptMixin, JSONResponseMixin
-from django.conf import settings
-import requests
+from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
+from .util import *
+import traceback
+from django.http import HttpResponse, JsonResponse
+from rest_framework.generics import RetrieveAPIView
+from rest_framework_serializer_extensions.views import SerializerExtensionsAPIViewMixin
+from rest_framework import generics
 
 
 class UsersView(viewsets.GenericViewSet):
@@ -63,6 +68,7 @@ class ProductCategoryView(viewsets.ModelViewSet):
     serializer_class = ProductCategorySerializer
 
 
+
 # a product has an id, and it belongs to a category.
 class ProductView(viewsets.ModelViewSet):
     queryset = Product.objects.all()
@@ -93,10 +99,52 @@ class InventoryItemStatusView(viewsets.ModelViewSet):
     serializer_class = InventoryItemStatusSerializer
 
 
-# a list of all advertised products.
-class InventoryView(viewsets.ModelViewSet):
+class InventoryItemView(SerializerExtensionsAPIViewMixin, RetrieveAPIView, generics.ListAPIView):
     queryset = Inventory.objects.all()
-    serializer_class = InventorySerializer
+    serializer_class = InventoryItemSerializer
+
+
+
+# a list of all advertised products.
+class InventoryView(CsrfExemptMixin, JSONResponseMixin, APIView):
+    def __init__(self):
+        pass
+
+    def get(self, request, **kwargs):
+        model = Inventory
+        try:
+            id = self.kwargs.get("id")
+
+            inventoryItem = model.objects.get(pk=id)
+            print(inventoryItem)
+            return JsonResponse({"result": "whatever"} )
+        except:
+            raise
+            return self.render_json_response({"error": "{} is an invalid listing id.".format(id)})
+
+    @csrf_exempt
+    def post(self, request):
+        try:
+
+            print(request.FILES["image"])
+            item_picture = handle_uploaded_file(request.FILES["image"])
+            print(item_picture)
+            if item_picture == "error":
+                raise Exception
+
+            inventory_item = Inventory()
+
+            inventory_item.inventory_item_status = InventoryItemStatus.objects.get(pk=3)
+            inventory_item.product = get_product(product_name=request.data.get("product_name"))
+            inventory_item.inventory_product_quantity = request.data.get("quantity")
+            inventory_item.seller = get_seller(request)
+            inventory_item.product_measuring_unit = get_product_measuring_unit(request.data.get("measuring_unit"))
+            inventory_item.item_picture = item_picture
+            inventory_item.save()
+            return self.render_json_response({"inventory_id": inventory_item.pk})
+        except:
+            traceback.print_exc()
+            return self.render_json_response({"inventory_update": "failed"})
 
 
 # each inventory item can have its own address. Default is sellers address.
@@ -228,7 +276,7 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
 
         return self.render_json_response({"registration_pending": registration_pending})
 
-from django.views.decorators.csrf import csrf_exempt
+
 
 class PlaygroundView(JSONResponseMixin, CsrfExemptMixin, APIView):
     def __init__(self):

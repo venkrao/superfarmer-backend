@@ -70,11 +70,11 @@ class ProductMeasuringUnit(models.Model):
 
 # list of sellers, with the list of products they sell.
 class Seller(models.Model):
-    seller_id = models.ForeignKey(Users, on_delete=models.CASCADE)
+    seller = models.ForeignKey(Users, on_delete=models.CASCADE)
     sells = models.ForeignKey(Product, on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ("seller_id", "sells")
+        unique_together = ("seller", "sells")
 
 
 # list of buyers, with the list of products they buy.
@@ -97,7 +97,7 @@ class InventoryItemStatus(models.Model):
 class Inventory(models.Model):
     inventory_item_id = models.BigAutoField(primary_key=True)
     inventory_item_status = models.ForeignKey(InventoryItemStatus, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, related_name='inventory_product_name', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     inventory_product_quantity = models.FloatField()
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
     product_measuring_unit = models.ForeignKey(ProductMeasuringUnit, on_delete=models.PROTECT)

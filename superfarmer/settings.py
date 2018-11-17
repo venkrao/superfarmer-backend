@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'rest_framework_social_oauth2',
     'corsheaders',
     'superfarmer.backend',
+    'rest_framework_serializer_extensions',
+    'silk'
 ]
 
 MIDDLEWARE = [
@@ -55,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'silk.middleware.SilkyMiddleware',
 ]
 
 
@@ -180,7 +183,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
-
+MEDIA_URL = '/pictures/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'uploaded_pictures')
 
 
 BACKEND_MAPPING = { "google" : "google-plus" }

@@ -16,6 +16,8 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
+from django.conf.urls.static import static
+from django.conf import settings
 
 from django.conf.urls import url, include
 from rest_framework import routers
@@ -32,12 +34,11 @@ router.register(r'buyer', BuyerView)
 router.register(r'productcategory', ProductCategoryView)
 router.register(r'productmeasuringunit', ProductMeasuringUnitView)
 router.register(r'inventoryitemstatus', InventoryItemStatusView)
-router.register(r'intentory', InventoryView)
+
 router.register(r'inventoryitemaddress', InventoryItemAddressView)
 router.register(r'registrationstatus', RegistrationStatusView)
 
 router.register(r'transporter', TransporterView)
-
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -46,5 +47,10 @@ urlpatterns = [
     url(r'^auth/', include('rest_framework_social_oauth2.urls')),
     url(r'userauth', UserAuth.as_view()),
     url(r'userprofile', UserProfileView.as_view()),
-    url(r'playgroundview', PlaygroundView.as_view())
+    url(r'playgroundview', PlaygroundView.as_view()),
+    url(r'inventory/(?P<pk>.+)/$', InventoryItemView.as_view()),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+urlpatterns += [url(r'^silk/', include('silk.urls', namespace='silk'))]
