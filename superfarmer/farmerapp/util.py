@@ -22,6 +22,8 @@ def get_seller(request):
         seller = Seller.objects.get(pk=get_user(request).user_id)
         return seller
     except:
+
+        print("seller id not found.")
         return None
 
 
@@ -31,6 +33,18 @@ def get_product_measuring_unit(measuring_unit=None):
         return product_measuring_unit
     except:
         return None
+
+
+def get_product_category(category=None):
+    try:
+        if type(category) == int:
+            product_category = ProductCategory.objects.get(category_id=category)
+        else:
+            product_category = ProductCategory.objects.get(category_name=category)
+        return product_category
+    except:
+        return None
+
 
 
 def handle_uploaded_file(f):

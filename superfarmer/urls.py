@@ -21,7 +21,7 @@ from django.conf import settings
 
 from django.conf.urls import url, include
 from rest_framework import routers
-from superfarmer.backend.views import *
+from superfarmer.farmerapp.views import *
 
 router = routers.DefaultRouter()
 router.register(r'usercategory', UserCategoryView)
@@ -48,9 +48,14 @@ urlpatterns = [
     url(r'userauth', UserAuth.as_view()),
     url(r'userprofile', UserProfileView.as_view()),
     url(r'playgroundview', PlaygroundView.as_view()),
-    url(r'inventory/(?P<pk>.+)/$', InventoryItemView.as_view()),
+    url(r'inventory/(?P<pk>[^/.]+)/$', InventoryItemView.as_view()),
+    url(r'inventory/$', InventoryView.as_view()),
+
+
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += [url(r'^silk/', include('silk.urls', namespace='silk'))]
+
+print(urlpatterns)

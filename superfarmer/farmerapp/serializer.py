@@ -22,6 +22,12 @@ class UsersSerializer(SerializerExtensionsMixin, serializers.ModelSerializer):
         exclude = ('user_status', 'registration_status')
 
 
+class UserNameSerializer(SerializerExtensionsMixin, serializers.ModelSerializer):
+    class Meta:
+        model = Users
+        fields = ('name',)
+
+
 class UserProfileSerializer(SerializerExtensionsMixin, serializers.ModelSerializer):
     class Meta:
         model = UserProfile
@@ -32,15 +38,14 @@ class UserProfileSerializer(SerializerExtensionsMixin, serializers.ModelSerializ
 class ProductCategorySerializer(SerializerExtensionsMixin, serializers.ModelSerializer):
     class Meta:
         model = ProductCategory
-        fields = '__all__'
+        fields = ('category_name', )
 
 
 # a product has an id, and it belongs to a category.
 class ProductSerializer(SerializerExtensionsMixin, serializers.ModelSerializer):
     class Meta:
         model = Product
-        #fields = ('product_name', 'product_default_image', 'product_category')
-        fields = '__all__'
+        fields = ('product_name', 'product_category', 'product_default_image')
 
         expandable_fields = dict(
             product_category=dict(
@@ -55,8 +60,26 @@ class ProductSerializer(SerializerExtensionsMixin, serializers.ModelSerializer):
 class ProductMeasuringUnitSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductMeasuringUnit
-
         exclude = ('measuring_unit_id',)
+
+
+class ProductNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['product_name']
+
+# list of sellers, with the list of products they sell.
+class SellerNameSerializer(SerializerExtensionsMixin, serializers.ModelSerializer):
+        class Meta:
+            model = Seller
+            fields = ('seller',)
+
+            expandable_fields = dict(
+                seller=dict(
+                    serializer=UserNameSerializer,
+                    id_source='seller.pk'),
+            )
+
 
 
 # list of sellers, with the list of products they sell.
@@ -83,31 +106,31 @@ class BuyerSerializer(serializers.ModelSerializer):
 class InventoryItemStatusSerializer(SerializerExtensionsMixin, serializers.ModelSerializer):
     class Meta:
         model = InventoryItemStatus
-        fields = '__all__'
+        fields = ('status', )
 
 
 # a list of all advertised products.
 class InventoryItemSerializer(SerializerExtensionsMixin, ModelSerializer):
     class Meta:
         model = Inventory
-        fields = '__all__'
+        exclude = ('product_category',  )
 
         expandable_fields = dict(
             product=dict(
                 serializer = ProductSerializer,
-                id_source='product.pk'
+
             ),
             inventory_item_status=dict(
                 serializer = InventoryItemStatusSerializer,
-                id_source='inventory_item_status.pk'
+
             ),
             seller=dict(
-                serializer = SellerSerializer,
-                id_source='seller.pk'
+                serializer = SellerNameSerializer,
+
             ),
             product_measuring_unit=dict(
                 serializer=ProductMeasuringUnitSerializer,
-                id_source='product_measuring_unit.pk'
+
             ),
 
         )
@@ -123,7 +146,6 @@ class InventoryItemAddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = InventoryItemAddress
         fields = '__all__'
-
 
 
 # transporters have an id, their transportation capacity, and what they're willing to transport.

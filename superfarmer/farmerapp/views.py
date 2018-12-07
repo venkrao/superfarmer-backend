@@ -12,7 +12,7 @@ from django.http import HttpResponse, JsonResponse
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_serializer_extensions.views import SerializerExtensionsAPIViewMixin
 from rest_framework import generics
-
+from django_filters.rest_framework import DjangoFilterBackend
 
 class UsersView(viewsets.GenericViewSet):
     def get(self, request):
@@ -41,9 +41,9 @@ class UserProfileView(CsrfExemptMixin, JSONResponseMixin, APIView):
         pass
 
     def post(self, request, *args, **kwargs):
-        print(request.user)
+
         try:
-            print(request.user)
+
             userprofile = UserProfile(user_id=Users.objects.get(email_address=request.user.email), about_me="Default about me",
                                         address=request.data.get("address"), city=request.data.get("city"), state=request.data.get("state"),
                                         postal_code="576200", phone_primary=request.data.get("phone_primary"))
@@ -62,11 +62,13 @@ class UserProfileView(CsrfExemptMixin, JSONResponseMixin, APIView):
 
         return self.render_json_response(context_dict=response_dict)
 
+
 # List of categories the web portal is supporting.
-class ProductCategoryView(viewsets.ModelViewSet):
+class ProductCategoryView(viewsets.ModelViewSet, viewsets.ViewSet, generics.ListAPIView):
     queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
-
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = ('category_name', 'category_id')
 
 
 # a product has an id, and it belongs to a category.
@@ -99,33 +101,13 @@ class InventoryItemStatusView(viewsets.ModelViewSet):
     serializer_class = InventoryItemStatusSerializer
 
 
-class InventoryItemView(SerializerExtensionsAPIViewMixin, RetrieveAPIView, generics.ListAPIView):
+class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
     queryset = Inventory.objects.all()
     serializer_class = InventoryItemSerializer
-
-
-
-# a list of all advertised products.
-class InventoryView(CsrfExemptMixin, JSONResponseMixin, APIView):
-    def __init__(self):
-        pass
-
-    def get(self, request, **kwargs):
-        model = Inventory
-        try:
-            id = self.kwargs.get("id")
-
-            inventoryItem = model.objects.get(pk=id)
-            print(inventoryItem)
-            return JsonResponse({"result": "whatever"} )
-        except:
-            raise
-            return self.render_json_response({"error": "{} is an invalid listing id.".format(id)})
 
     @csrf_exempt
     def post(self, request):
         try:
-
             print(request.FILES["image"])
             item_picture = handle_uploaded_file(request.FILES["image"])
             print(item_picture)
@@ -134,17 +116,29 @@ class InventoryView(CsrfExemptMixin, JSONResponseMixin, APIView):
 
             inventory_item = Inventory()
 
-            inventory_item.inventory_item_status = InventoryItemStatus.objects.get(pk=3)
+            inventory_item.inventory_item_status = InventoryItemStatus.objects.get(pk=2)
             inventory_item.product = get_product(product_name=request.data.get("product_name"))
             inventory_item.inventory_product_quantity = request.data.get("quantity")
             inventory_item.seller = get_seller(request)
             inventory_item.product_measuring_unit = get_product_measuring_unit(request.data.get("measuring_unit"))
             inventory_item.item_picture = item_picture
+            inventory_item.product_category = get_product_category(
+                category=1)  # TODO: THIS SHOULD BE READ OUT OF THE REQUEST.
+
             inventory_item.save()
             return self.render_json_response({"inventory_id": inventory_item.pk})
         except:
             traceback.print_exc()
             return self.render_json_response({"inventory_update": "failed"})
+
+
+class InventoryItemView(SerializerExtensionsAPIViewMixin, JSONResponseMixin, generics.ListAPIView):
+    queryset = Inventory.objects.all()
+    serializer_class = InventoryItemSerializer
+
+    def get_queryset(self):
+        unformatted = Inventory.objects.filter(inventory_item_id=self.kwargs["pk"])
+        return unformatted
 
 
 # each inventory item can have its own address. Default is sellers address.
@@ -202,7 +196,7 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
     def add_new_user(self, request):
         print(request.user)
         # On first login, the user is in unverified status (4); and his registration_status is unregistered(2)
-        new_user = Users(user_status=UserStatus.objects.get(pk=4), name=request.user.username, email_address=request.user.email,
+        new_user = Users(user_status=UserStatus.objects.get(pk=2), name=request.user.username, email_address=request.user.email,
                          registration_status=RegistrationStatus.objects.get(pk=2))
 
         if self.oauth_provider == "google":
@@ -214,55 +208,6 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
         new_user.save()
 
     def post(self, request, *args, **kwargs):
-        """"
-        social_auth_userdata = request.data.get("social_auth_userdata")
-        if social_auth_userdata:
-            token = social_auth_userdata.get("token")
-
-            self.oauth_provider = social_auth_userdata.get("token_provider")
-
-            self.name = token.get("name")
-            self.email = token.get("email")
-            self.image = token.get("image")
-            self.oauth_provided_user_id = token.get("id")
-            self.provider = token.get("provider")
-            self.oauth_provider_token = token.get("token")
-
-            # convert the social auth token into drf token - self.convert_token
-            self.converted_token = self.convert_token()
-
-            # check if the user is new user. - self.is_new_user()
-            if self.is_new_user():
-                registration_pending = True
-                # Create an entry in Users table.
-                self.add_new_user(request)
-            else:
-                registration_pending = False
-
-            response_dict = {
-                "converted_token": self.converted_token,
-                "user_id": self.user_id,
-                "registration_pending": registration_pending
-            }
-            # If registration_pending, then, frontend will force the user to register, and
-            # send registration data to backend, handled by register_user()
-            return self.render_json_response(context_dict=response_dict)
-
-        # if not, register the user - self.register_user()
-        registration_data = request.data.get("registration_data")
-        if registration_data:
-            auth_token = request.data.get("auth_token")
-            if not auth_token:
-                return self.render_json_response({"user_registration": "unauthorized_request"})
-
-            if self.register_user(registration_data, auth_token):
-                status = "succeeded"
-            else:
-                status = "failed"
-
-            return self.render_json_response({"user_registration": status})
-        """
-        # check if the user is new user. - self.is_new_user()
 
         if self.is_new_user(request):
             registration_pending = True

@@ -13,6 +13,7 @@ class UserStatus(models.Model):
     status_id = models.AutoField(primary_key=True)
     status = models.CharField(max_length=32, unique=True)
 
+
 # registered/pending
 class RegistrationStatus(models.Model):
     status_id = models.AutoField(primary_key=True)
@@ -68,6 +69,7 @@ class ProductMeasuringUnit(models.Model):
     multiplier = models.FloatField()
 
 
+
 # list of sellers, with the list of products they sell.
 class Seller(models.Model):
     seller = models.ForeignKey(Users, on_delete=models.CASCADE)
@@ -105,6 +107,7 @@ class Inventory(models.Model):
     inventory_item_update_datetime = models.DateTimeField(default=now)
     inventory_available_from_datetime = models.DateTimeField(default=now)
     item_picture = models.CharField(max_length=124)
+    product_category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE)
 
 
 # each inventory item can have its own address. Default is sellers address.

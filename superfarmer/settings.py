@@ -42,9 +42,10 @@ INSTALLED_APPS = [
     'social_django',
     'rest_framework_social_oauth2',
     'corsheaders',
-    'superfarmer.backend',
+    'superfarmer.farmerapp',
     'rest_framework_serializer_extensions',
-    'silk'
+    'silk',
+    'django_filters'
 ]
 
 MIDDLEWARE = [
@@ -101,13 +102,13 @@ TEMPLATES = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
-        # 'oauth2_provider.ext.rest_framework.OAuth2Authentication',  # django-oauth-toolkit < 1.0.0
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # django-oauth-toolkit >= 1.0.0
         'rest_framework_social_oauth2.authentication.SocialAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-    )
+    ),
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',)
 }
 
 AUTHENTICATION_BACKENDS = (
