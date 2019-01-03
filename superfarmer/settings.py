@@ -76,7 +76,6 @@ CORS_ALLOW_HEADERS = (
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-
 )
 
 ROOT_URLCONF = 'superfarmer.urls'
@@ -121,7 +120,7 @@ CORS_ORIGIN_ALLOW_ALL = True # TODO: only for the tests!
 
 CORS_ORIGIN_WHITELIST = (
     'localhost:4200',
-    '127.0.0.1:4200'
+    '127.0.0.1:4200',
 )
 
 WSGI_APPLICATION = 'superfarmer.wsgi.application'

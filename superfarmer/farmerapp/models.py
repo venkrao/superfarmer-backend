@@ -41,7 +41,6 @@ class UserProfile(models.Model):
     latitude = models.FloatField(max_length=32, default="12.9716")
     longitude = models.FloatField(max_length=32, default="77.5946")
     phone_primary = models.CharField(max_length=32, unique=True)
-
     phone_verified = models.BooleanField(default=False)
     email_verified = models.BooleanField(default=False)
 
@@ -62,12 +61,9 @@ class Product(models.Model):
 
 # each product has a measuring unit, a base measuring unit and a multiplier.
 # measuring unit = multiplier * base measuring unit
-class ProductMeasuringUnit(models.Model):
+class MeasuringUnit(models.Model):
     measuring_unit_id = models.AutoField(primary_key=True)
-    base_measuring_unit = models.CharField(max_length=32)
     measuring_unit = models.CharField(max_length=32, unique=True)
-    multiplier = models.FloatField()
-
 
 
 # list of sellers, with the list of products they sell.
@@ -98,13 +94,15 @@ class InventoryItemStatus(models.Model):
 # TODO: item_picture must accept a picture, upload it to web server.
 class Inventory(models.Model):
     inventory_item_id = models.BigAutoField(primary_key=True)
+    listing_title = models.CharField(max_length=64)
+    item_price = models.CharField(max_length=16)
     inventory_item_status = models.ForeignKey(InventoryItemStatus, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     inventory_product_quantity = models.FloatField()
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
-    product_measuring_unit = models.ForeignKey(ProductMeasuringUnit, on_delete=models.PROTECT)
+    product_measuring_unit = models.ForeignKey(MeasuringUnit, on_delete=models.PROTECT)
     inventory_item_create_datetime = models.DateTimeField(default=now)
-    inventory_item_update_datetime = models.DateTimeField(default=now)
+    inventory_item_update_datetime = models.DateTimeField(auto_now=True)
     inventory_available_from_datetime = models.DateTimeField(default=now)
     item_picture = models.CharField(max_length=124)
     product_category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE)
@@ -112,9 +110,8 @@ class Inventory(models.Model):
 
 # each inventory item can have its own address. Default is sellers address.
 class InventoryItemAddress(models.Model):
-    item_id = models.ForeignKey(Inventory, on_delete=models.CASCADE)
-    address_part1 = models.CharField(max_length=126)
-    address_part2 = models.CharField(max_length=126)
+    item_id = models.OneToOneField(Inventory, on_delete=models.CASCADE)
+    address = models.CharField(max_length=126)
     city = models.CharField(max_length=64)
     state = models.CharField(max_length=64)
     country = models.CharField(max_length=64, default="India")
@@ -123,16 +120,21 @@ class InventoryItemAddress(models.Model):
     longitude = models.FloatField(max_length=18)
 
 
+class Vehicle(models.Model):
+    vehicle_id = models.AutoField(primary_key=True)
+    vehicle_name = models.CharField(max_length=40, unique=True)
+
+
 # transporters have an id, their transportation capacity, and what they're willing to transport.
 # TODO:
 # transporting capacity must be a positive floating point value. Impose the restriction in the model definition
 
 class Transporter(models.Model):
     transporter_id = models.ForeignKey(Users, on_delete=models.CASCADE)
-    minimum_capacity = models.DecimalField(max_digits=9, decimal_places=0)
-    max_capacity = models.DecimalField(max_digits=9, decimal_places=0)
-    transports = models.ForeignKey(Product, on_delete=models.CASCADE)
+    capacity = models.DecimalField(max_digits=9, decimal_places=0)
+    measuring_unit = models.ForeignKey(MeasuringUnit, on_delete=models.CASCADE)
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ("transporter_id", "transports")
+        unique_together = ("transporter_id", "vehicle")
 

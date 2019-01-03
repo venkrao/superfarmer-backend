@@ -36,14 +36,13 @@ class UsersView(viewsets.ModelViewSet, APIView):
     serializer_class = UsersSerializer
 
 
-class UserProfileView(CsrfExemptMixin, JSONResponseMixin, APIView):
-    def __init__(self):
-        pass
+class UserProfileView(JSONResponseMixin, generics.ListAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
 
     def post(self, request, *args, **kwargs):
 
         try:
-
             userprofile = UserProfile(user_id=Users.objects.get(email_address=request.user.email), about_me="Default about me",
                                         address=request.data.get("address"), city=request.data.get("city"), state=request.data.get("state"),
                                         postal_code="576200", phone_primary=request.data.get("phone_primary"))
@@ -59,8 +58,9 @@ class UserProfileView(CsrfExemptMixin, JSONResponseMixin, APIView):
                 "user_registration": "failed"
             }
             raise
-
         return self.render_json_response(context_dict=response_dict)
+
+
 
 
 # List of categories the web portal is supporting.
@@ -79,9 +79,9 @@ class ProductView(viewsets.ModelViewSet):
 
 # each product has a measuring unit, a base measuring unit and a multiplier.
 # measuring unit = multiplier * base measuring unit
-class ProductMeasuringUnitView(viewsets.ModelViewSet):
-    queryset = ProductMeasuringUnit.objects.all()
-    serializer_class = ProductMeasuringUnitSerializer
+class MeasuringUnitView(viewsets.ModelViewSet):
+    queryset = MeasuringUnit.objects.all()
+    serializer_class = MeasuringUnitSerializer
 
 
 # list of sellers, with the list of products they sell.
@@ -101,6 +101,20 @@ class InventoryItemStatusView(viewsets.ModelViewSet):
     serializer_class = InventoryItemStatusSerializer
 
 
+class MyListingsView(JSONResponseMixin, generics.ListCreateAPIView):
+
+    serializer_class = MyListingsSerializer
+
+    def get_queryset(self):
+        seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
+        queryset = Inventory.objects.filter(seller=seller)
+
+        return queryset
+
+    def post(self, request):
+        self.render_json_response({"update": "succeeded"})
+
+
 class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
     queryset = Inventory.objects.all()
     serializer_class = InventoryItemSerializer
@@ -108,9 +122,8 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
     @csrf_exempt
     def post(self, request):
         try:
-            print(request.FILES["image"])
             item_picture = handle_uploaded_file(request.FILES["image"])
-            print(item_picture)
+
             if item_picture == "error":
                 raise Exception
 
@@ -132,25 +145,43 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
             return self.render_json_response({"inventory_update": "failed"})
 
 
-class InventoryItemView(SerializerExtensionsAPIViewMixin, JSONResponseMixin, generics.ListAPIView):
+class InventoryItemView(JSONResponseMixin, generics.ListAPIView, generics.UpdateAPIView):
     queryset = Inventory.objects.all()
-    serializer_class = InventoryItemSerializer
+    serializer_class = InventoryItemSerializerNew
 
     def get_queryset(self):
         unformatted = Inventory.objects.filter(inventory_item_id=self.kwargs["pk"])
         return unformatted
 
+    def post(self, request, **kwargs):
+        # TODO: implement inventory update post method.
+        instance = self.get_object()
+
+        serializer = self.get_serializer(instance)
+        serializer.is_valid(raise_exception=True)
+        serializer.update(instance, self.request.data)
+
+        return self.render_json_response({"status": "updated"})
+
 
 # each inventory item can have its own address. Default is sellers address.
-class InventoryItemAddressView(viewsets.ModelViewSet):
+class InventoryItemAddressView(JSONResponseMixin, viewsets.ModelViewSet):
     queryset = InventoryItemAddress.objects.all()
     serializer_class = InventoryItemAddressSerializer
+
+
+
 
 
 # transporters have an id, their transportation capacity, and what they're willing to transport.
 class TransporterView(viewsets.ModelViewSet):
     queryset = Transporter.objects.all()
     serializer_class = TransporterSerializer
+
+
+class VehicleView(viewsets.ModelViewSet):
+    queryset = Vehicle.objects.all()
+    serializer_class = VehicleSerializer
 
 
 class RegistrationStatusView(viewsets.ModelViewSet):

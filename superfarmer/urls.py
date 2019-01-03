@@ -32,13 +32,14 @@ router.register(r'product', ProductView)
 router.register(r'seller', SellerView)
 router.register(r'buyer', BuyerView)
 router.register(r'productcategory', ProductCategoryView)
-router.register(r'productmeasuringunit', ProductMeasuringUnitView)
+router.register(r'measuringunit', MeasuringUnitView)
 router.register(r'inventoryitemstatus', InventoryItemStatusView)
 
 router.register(r'inventoryitemaddress', InventoryItemAddressView)
 router.register(r'registrationstatus', RegistrationStatusView)
 
 router.register(r'transporter', TransporterView)
+router.register(r'vehicle', VehicleView)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -49,13 +50,10 @@ urlpatterns = [
     url(r'userprofile', UserProfileView.as_view()),
     url(r'playgroundview', PlaygroundView.as_view()),
     url(r'inventory/(?P<pk>[^/.]+)/$', InventoryItemView.as_view()),
-    url(r'inventory/$', InventoryView.as_view()),
-
-
+    url(r'inventory/$', InventoryView().as_view()),
+    url(r'me/listings/$', MyListingsView().as_view()),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
 urlpatterns += [url(r'^silk/', include('silk.urls', namespace='silk'))]
 
-print(urlpatterns)
