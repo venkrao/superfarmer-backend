@@ -1,8 +1,12 @@
 Database management system needed: postgres
+instructions are at https://www.postgresql.org/download/linux/ubuntu/
 
-Use your favorite Postres management tool(pgAdmin 4 is really good.)
+Use your favorite Postres management tool(pgAdmin 4 is really good. installed by the previous step already.)
+
+Create a user: root
 Root user password: root
 
+Use pgAdmin to create the database.
 Create a database called: superfarmer
 
 Then, Download this repository
