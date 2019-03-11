@@ -1,4 +1,8 @@
+Database management system needed: postgres
+
 Use your favorite Postres management tool(pgAdmin 4 is really good.)
+Root user password: root
+
 Create a database called: superfarmer
 
 Then, Download this repository
@@ -6,6 +10,8 @@ To create database tables, run the following:
 
 
 cd superfamer-backend
+pip install -r requirements.txt
+
 python manage.py migrate
 python manage.py  makemigrations farmerapp
 python manage.py migrate
