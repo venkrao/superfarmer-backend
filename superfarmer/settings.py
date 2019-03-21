@@ -25,8 +25,7 @@ SECRET_KEY = 'l=dsx@3mk+lyn4cb3e)&k_fq2j%t3zob^g8jh2koe!+c9g!xfn'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost".split(","))
 
 # Application definition
 
@@ -135,7 +134,7 @@ DATABASES = {
         'NAME': 'superfarmer',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
-        'HOST': 'localhost',
+        'HOST': os.environ.get("POSTGRES_HOST", "localhost"),
         'PORT': '5432',
     }
 }

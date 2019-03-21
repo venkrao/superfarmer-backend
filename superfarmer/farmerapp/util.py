@@ -2,6 +2,26 @@ from .models import *
 from superfarmer.settings import MEDIA_ROOT, MEDIA_URL
 from collections import OrderedDict
 
+def get_user_registration_status(request):
+    registration_status = None
+    try:
+        user = Users.objects.get(user_id=Users.objects.get(email_address=request.user.email).user_id)
+        registration_status = RegistrationStatus.objects.get("status")
+    except:
+        pass
+
+    return registration_status
+
+
+def user_profile_exists(request):
+    userprofile = None
+    try:
+        userprofile = UserProfile.objects.get(user_id=Users.objects.get(email_address=request.user.email))
+    except:
+        pass
+
+    return userprofile
+
 def get_user(request):
     try:
         user = Users.objects.get(email_address=request.user.email)

@@ -42,25 +42,36 @@ class UserProfileView(JSONResponseMixin, generics.ListAPIView):
 
     def post(self, request, *args, **kwargs):
 
-        try:
-            userprofile = UserProfile(user_id=Users.objects.get(email_address=request.user.email), about_me="Default about me",
-                                        address=request.data.get("address"), city=request.data.get("city"), state=request.data.get("state"),
-                                        postal_code="576200", phone_primary=request.data.get("phone_primary"))
+        response_dict = {
+            "user_registration": "profile_created"
+        }
 
-            # TODO:  IMPLEMENT UPDATE, NOT JUST SAVE PROFILE.
-            userprofile.save()
+        if not user_profile_exists(request):
+            try:
+                userprofile = UserProfile(user_id=Users.objects.get(email_address=request.user.email), about_me="Default about me",
+                                            address=request.data.get("address"), city=request.data.get("city"), state=request.data.get("state"),
+                                            postal_code="576200", phone_primary=request.data.get("phone_primary"))
 
+                # TODO:  IMPLEMENT UPDATE, NOT JUST SAVE PROFILE.
+                userprofile.save()
+
+                if (get_user_registration_status(request) != "registered"):
+                    user = Users.objects.get(user_id=Users.objects.get(email_address=request.user.email).user_id)
+                    user.registration_status=RegistrationStatus.objects.get(status="registered")
+                    user.save()
+
+            except:
+                response_dict = {
+                    "user_registration": "profile_creation_failed"
+                }
+                raise
+        else:
+            # User profile exists. So, you must update it.
             response_dict = {
-                "user_registration": "success"
+                "user_registration": "update_succeeded"
             }
-        except:
-            response_dict = {
-                "user_registration": "failed"
-            }
-            raise
+
         return self.render_json_response(context_dict=response_dict)
-
-
 
 
 # List of categories the web portal is supporting.
@@ -135,6 +146,7 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
             inventory_item.seller = get_seller(request)
             inventory_item.product_measuring_unit = get_product_measuring_unit(request.data.get("measuring_unit"))
             inventory_item.item_picture = item_picture
+            inventory_item.item_price = request.data.get("price")
             inventory_item.product_category = get_product_category(
                 category=1)  # TODO: THIS SHOULD BE READ OUT OF THE REQUEST.
 
@@ -168,9 +180,6 @@ class InventoryItemView(JSONResponseMixin, generics.ListAPIView, generics.Update
 class InventoryItemAddressView(JSONResponseMixin, viewsets.ModelViewSet):
     queryset = InventoryItemAddress.objects.all()
     serializer_class = InventoryItemAddressSerializer
-
-
-
 
 
 # transporters have an id, their transportation capacity, and what they're willing to transport.
@@ -210,7 +219,7 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
         except ObjectDoesNotExist:
             return True
 
-    def is_registration_pending(self, request):
+    def is_registration_complete(self, request):
         try:
             user_object = Users.objects.get(email_address=request.user.email,
                                             registration_status=RegistrationStatus.objects.get(pk=2))
@@ -219,7 +228,6 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
             return True
         except ObjectDoesNotExist:
             return False
-
 
     def register_user(self, registration_data, auth_token):
         pass
@@ -245,13 +253,12 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
             # Create an entry in Users table.
             self.add_new_user(request)
         else:
-            if self.is_registration_pending(request):
+            if self.is_registration_complete(request):
                 registration_pending = True
             else:
                 registration_pending = False
 
         return self.render_json_response({"registration_pending": registration_pending})
-
 
 
 class PlaygroundView(JSONResponseMixin, CsrfExemptMixin, APIView):
@@ -261,6 +268,15 @@ class PlaygroundView(JSONResponseMixin, CsrfExemptMixin, APIView):
     @csrf_exempt
     def post(self, request):
         print(request.user)
-        return self.render_json_response({"HELLO": "request"})
+        print(UserAuth().is_registration_complete(request))
+        return self.render_json_response({"response": "this is the response text."})
 
 
+class IsRegisteredUser(JSONResponseMixin, CsrfExemptMixin, APIView):
+    def __init__(self):
+        pass
+
+    @csrf_exempt
+    def post(self, request):
+        is_registration_complete = UserAuth().is_registration_complete(request)
+        return self.render_json_response({"registered": is_registration_complete})

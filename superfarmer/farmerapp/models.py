@@ -14,7 +14,7 @@ class UserStatus(models.Model):
     status = models.CharField(max_length=32, unique=True)
 
 
-# registered/pending
+# registered/pending/verification_pending
 class RegistrationStatus(models.Model):
     status_id = models.AutoField(primary_key=True)
     status = models.CharField(max_length=32, unique=True)
