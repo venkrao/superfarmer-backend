@@ -143,6 +143,7 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
             inventory_item.inventory_item_status = InventoryItemStatus.objects.get(pk=2)
             inventory_item.product = get_product(product_name=request.data.get("product_name"))
             inventory_item.inventory_product_quantity = request.data.get("quantity")
+
             inventory_item.seller = get_seller(request)
             inventory_item.product_measuring_unit = get_product_measuring_unit(request.data.get("measuring_unit"))
             inventory_item.item_picture = item_picture
@@ -222,8 +223,8 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
     def is_registration_complete(self, request):
         try:
             user_object = Users.objects.get(email_address=request.user.email,
-                                            registration_status=RegistrationStatus.objects.get(pk=2))
-            # If there is no exception, then, the given user's registration_status is still 2 == pending.
+                                            registration_status=RegistrationStatus.objects.get(pk=1))
+            # If there is no exception, then, the given user's registration_status 2 == registered.
             # So, return True.
             return True
         except ObjectDoesNotExist:
@@ -233,10 +234,10 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
         pass
 
     def add_new_user(self, request):
-        print(request.user)
+
         # On first login, the user is in unverified status (4); and his registration_status is unregistered(2)
-        new_user = Users(user_status=UserStatus.objects.get(pk=2), name=request.user.username, email_address=request.user.email,
-                         registration_status=RegistrationStatus.objects.get(pk=2))
+        new_user = Users(user_status=UserStatus.objects.get(pk=2), name=request.user.username,
+                         email_address=request.user.email, registration_status=RegistrationStatus.objects.get(pk=2))
 
         if self.oauth_provider == "google":
             new_user.google_user_id = self.oauth_provided_user_id
@@ -245,6 +246,40 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
             new_user.fb_user_id = self.oauth_provided_user_id
 
         new_user.save()
+
+    def send_email_verification_code(self, request):
+        pass
+
+    def send_phone_verification_code(selfs, request):
+        pass
+
+    def do_email_verification(self, request):
+        pass
+
+    def do_phone_verification(self, request):
+        pass
+
+    def is_email_verified(self, request):
+        verification_status = False
+        try:
+            verification_status = UserProfile.objects.get(id=Users.objects.get(email_address=request.user.email),
+                                                          email_verified="false")
+            verification_status = True
+        except:
+            pass
+
+        return verification_status
+
+    def is_phone_verified(self, request):
+        verification_status = False
+        try:
+            verification_status = UserProfile.objects.get(id=Users.objects.get(email_address=request.user.email),
+                                                          phone_verified="false")
+            verification_status = True
+        except:
+            pass
+
+        return verification_status
 
     def post(self, request, *args, **kwargs):
 
@@ -261,17 +296,6 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
         return self.render_json_response({"registration_pending": registration_pending})
 
 
-class PlaygroundView(JSONResponseMixin, CsrfExemptMixin, APIView):
-    def __init__(self):
-        pass
-
-    @csrf_exempt
-    def post(self, request):
-        print(request.user)
-        print(UserAuth().is_registration_complete(request))
-        return self.render_json_response({"response": "this is the response text."})
-
-
 class IsRegisteredUser(JSONResponseMixin, CsrfExemptMixin, APIView):
     def __init__(self):
         pass
@@ -280,3 +304,62 @@ class IsRegisteredUser(JSONResponseMixin, CsrfExemptMixin, APIView):
     def post(self, request):
         is_registration_complete = UserAuth().is_registration_complete(request)
         return self.render_json_response({"registered": is_registration_complete})
+
+
+class ListingsByCategory(JSONResponseMixin, CsrfExemptMixin, APIView):
+    def __init__(self):
+        pass
+
+    @csrf_exempt
+    def get_queryset(self, request):
+        print(request.params)
+        return self.render_json_response({"response": "listingsbycategory"})
+
+
+class ListingsByProduct(JSONResponseMixin, CsrfExemptMixin, APIView):
+    pass
+
+
+class ListingsByUser(JSONResponseMixin, CsrfExemptMixin, APIView):
+    pass
+
+
+class SearchListings(JSONResponseMixin, CsrfExemptMixin, APIView):
+    def __init__(self):
+        pass
+
+    def do_search(self, request):
+        # Could this be a free-text search? User can type-in anything.
+        pass
+
+
+
+class PlaygroundView1(JSONResponseMixin, CsrfExemptMixin, APIView):
+    def __init__(self):
+        pass
+
+    @csrf_exempt
+    def post(self, request):
+        print(request.user)
+        registration_status = UserAuth().is_registration_complete(request)
+        email_verification_status = UserAuth().is_email_verified(request)
+        phone_verification_status = UserAuth().is_phone_verified(request)
+
+        return self.render_json_response({"response": {"email_verification_status": email_verification_status,
+                                                       "registration_status": registration_status,
+                                                       "phone_verification_status": phone_verification_status,
+                                                       }
+                                          })
+
+import json
+
+class PlaygroundView(JSONResponseMixin, CsrfExemptMixin, APIView):
+    def __init__(self):
+        pass
+
+    # products
+    @csrf_exempt
+    def get_queryset(self, request):
+        pass
+
+

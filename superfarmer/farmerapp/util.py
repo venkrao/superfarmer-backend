@@ -22,9 +22,11 @@ def user_profile_exists(request):
 
     return userprofile
 
+
 def get_user(request):
     try:
         user = Users.objects.get(email_address=request.user.email)
+        print("user = {}".format(user))
         return user
     except:
         return None
@@ -40,10 +42,13 @@ def get_product(product_name=None):
 
 def get_seller(request):
     try:
-        seller = Seller.objects.get(pk=get_user(request).user_id)
+        user_id = get_user(request)
+        print("user_id = {}".format(user_id))
+        seller = Seller.objects.get(seller=user_id)
         return seller
     except:
-        print("seller id not found.")
+        print("{} is not a registered seller.".format(request.user_id))
+
         return None
 
 

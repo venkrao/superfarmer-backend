@@ -52,6 +52,7 @@ urlpatterns = [
     url(r'playground', PlaygroundView.as_view()),
     url(r'inventory/(?P<pk>[^/.]+)/$', InventoryItemView.as_view()),
     url(r'inventory/$', InventoryView().as_view()),
+    url(r'listingsbycategory/$', ListingsByCategory().as_view()),
     url(r'me/listings/$', MyListingsView().as_view()),
 ]
 
