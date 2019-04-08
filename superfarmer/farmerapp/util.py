@@ -40,6 +40,17 @@ def get_product(product_name=None):
         return None
 
 
+def is_seller(request):
+    try:
+        user_id = get_user(request)
+        print("user_id = {}".format(user_id))
+        seller = Seller.objects.get(seller=user_id)
+        return seller
+    except:
+        print("{} is not a registered seller.".format(user_id))
+        return None
+
+
 def get_seller(request):
     try:
         user_id = get_user(request)

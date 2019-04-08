@@ -70,10 +70,10 @@ class MeasuringUnit(models.Model):
 # list of sellers, with the list of products they sell.
 class Seller(models.Model):
     seller = models.ForeignKey(Users, on_delete=models.CASCADE)
-    sells = models.ForeignKey(Product, on_delete=models.CASCADE)
+    #sells = models.ForeignKey(Product, on_delete=models.CASCADE)
 
-    class Meta:
-        unique_together = ("seller", "sells")
+    # class Meta:
+        #unique_together = ("seller", "sells")
 
 
 # list of buyers, with the list of products they buy.

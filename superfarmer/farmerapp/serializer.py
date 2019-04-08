@@ -295,3 +295,33 @@ class RegistrationStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = RegistrationStatus
         fields = '__all__'
+
+
+class MyListingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Inventory
+        fields = '__all__'
+
+        depth = 6
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+
+        sellerInstance = ret.get("seller")
+        user_id = sellerInstance.get("seller").get("user_id")
+        userProfile = UserProfileSerializer(UserProfile.objects.get(user_id=user_id)).data
+
+        address = get_inventory_item_address(item_id=ret.get("inventory_item_id"))
+
+        if address == None:
+            address = userProfile
+        else:
+            address = InventoryItemAddressSerializer(address).data
+            address["phone_primary"] = userProfile.get("phone_primary")
+            address["phone_verified"] = userProfile.get("phone_verified", "false")
+            address["email_verified"] = userProfile.get("email_verified", "false")
+
+        ret.update(address=address)
+        sanitized = sanitize_inventory_item(ret)
+
+        return sanitized

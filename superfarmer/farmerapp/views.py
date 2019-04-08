@@ -113,17 +113,26 @@ class InventoryItemStatusView(viewsets.ModelViewSet):
 
 
 class MyListingsView(JSONResponseMixin, generics.ListCreateAPIView):
-
-    serializer_class = MyListingsSerializer
+    def __init__(self):
+        pass
 
     def get_queryset(self):
         seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
         queryset = Inventory.objects.filter(seller=seller)
 
-        return queryset
+        return self.render_json_response({"response": queryset})
 
     def post(self, request):
-        self.render_json_response({"update": "succeeded"})
+        seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
+        queryset = Inventory.objects.filter(seller=seller).values()
+
+        mylistings = []
+        for l in queryset:
+            mylistings.append(l)
+
+        print(mylistings)
+
+        return self.render_json_response({"repsonse": mylistings})
 
 
 class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
@@ -139,7 +148,7 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
                 raise Exception
 
             inventory_item = Inventory()
-
+            inventory_item.listing_title = request.data.get("listing_title")
             inventory_item.inventory_item_status = InventoryItemStatus.objects.get(pk=2)
             inventory_item.product = get_product(product_name=request.data.get("product_name"))
             inventory_item.inventory_product_quantity = request.data.get("quantity")
@@ -289,9 +298,9 @@ class UserAuth(CsrfExemptMixin, JSONResponseMixin, APIView):
             self.add_new_user(request)
         else:
             if self.is_registration_complete(request):
-                registration_pending = True
-            else:
                 registration_pending = False
+            else:
+                registration_pending = True
 
         return self.render_json_response({"registration_pending": registration_pending})
 
@@ -333,6 +342,32 @@ class SearchListings(JSONResponseMixin, CsrfExemptMixin, APIView):
         pass
 
 
+class IsSeller(JSONResponseMixin, CsrfExemptMixin, APIView):
+    def __init__(self):
+        pass
+
+    def post(self, request):
+        if is_seller(request):
+            return self.render_json_response({"seller": True})
+        else:
+            return self.render_json_response({"seller": False})
+
+
+class RegisterAsSeller(JSONResponseMixin, CsrfExemptMixin, APIView):
+    def __init__(self):
+        pass
+
+    def post(self, request):
+        if is_seller(request):
+            return self.render_json_response({"response": "already_registered"})
+        else:
+            user_id = get_user(request)
+            try:
+                seller = Seller(seller=user_id).save()
+                return self.render_json_response({"response": "success"})
+            except:
+                return self.render_json_response({"response": "failed"})
+
 
 class PlaygroundView1(JSONResponseMixin, CsrfExemptMixin, APIView):
     def __init__(self):
@@ -351,15 +386,25 @@ class PlaygroundView1(JSONResponseMixin, CsrfExemptMixin, APIView):
                                                        }
                                           })
 
-import json
 
 class PlaygroundView(JSONResponseMixin, CsrfExemptMixin, APIView):
     def __init__(self):
         pass
 
-    # products
-    @csrf_exempt
-    def get_queryset(self, request):
-        pass
+    def get_queryset(self):
+        seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
+        queryset = Inventory.objects.filter(seller=seller)
 
+        return queryset
 
+    def post(self, request):
+        seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
+        queryset = Inventory.objects.filter(seller=seller).values()
+
+        mylistings = []
+        for l in queryset:
+            mylistings.append(l)
+
+        print(mylistings)
+
+        return self.render_json_response({"repsonse": mylistings})

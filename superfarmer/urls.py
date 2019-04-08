@@ -54,6 +54,8 @@ urlpatterns = [
     url(r'inventory/$', InventoryView().as_view()),
     url(r'listingsbycategory/$', ListingsByCategory().as_view()),
     url(r'me/listings/$', MyListingsView().as_view()),
+    url(r'isseller/', IsSeller.as_view()),
+    url(r'register-as-seller/', RegisterAsSeller.as_view()),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
