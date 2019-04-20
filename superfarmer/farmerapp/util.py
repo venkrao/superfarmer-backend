@@ -71,15 +71,33 @@ def get_product_measuring_unit(measuring_unit=None):
         return None
 
 
-def get_product_category(category=None):
-    try:
-        if type(category) == int:
-            product_category = ProductCategory.objects.get(category_id=category)
-        else:
-            product_category = ProductCategory.objects.get(category_name=category)
-        return product_category
-    except:
-        return None
+def get_product_category(category=None, product=None):
+    product_category = None
+    if category:
+        try:
+            if type(category) == int:
+                product_category = ProductCategory.objects.get(category_id=category)
+            else:
+                print("looking up category_id for: {}".format(category))
+                product_category = ProductCategory.objects.get(category_name=category)
+        except:
+            print("No such category:  {}".format(category))
+
+    if product:
+        try:
+            print("looking up product_category for product: {}".format(product))
+            if type(product) == int:
+                product_object = Product.objects.get(product_id=product.product_id)
+            else:
+                product_object = Product.objects.get(product_name=product.product_name)
+
+            print("product object: ".format(product_object))
+            product_category = ProductCategory.objects.get(category_id=product_object.product_category)
+        except:
+            print("Not found:  {}".format(product_category))
+
+    print("product_cactegory: {}".format(product_category))
+    return product_category
 
 
 def handle_uploaded_file(f):
@@ -157,3 +175,19 @@ def sanitize_inventory_item(instance):
 
     sanitized["address"] = address
     return sanitized
+
+
+def get_listings_by_category(category=None):
+    listings_by_category = None
+    try:
+        print("Looking up listings for category: {}".format(category))
+        queryset = Inventory.objects.filter(product_category=category).values()
+        print(queryset)
+        listings_by_category = []
+        for l in queryset:
+            listings_by_category.append(l)
+    except:
+        print("No listings for category: {}".format(category))
+        pass
+
+    return listings_by_category

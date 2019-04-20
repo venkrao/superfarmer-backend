@@ -158,7 +158,7 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
             inventory_item.item_picture = item_picture
             inventory_item.item_price = request.data.get("price")
             inventory_item.product_category = get_product_category(
-                category=1)  # TODO: THIS SHOULD BE READ OUT OF THE REQUEST.
+                category=inventory_item.product.product_category.category_id)  # TODO: THIS SHOULD BE READ OUT OF THE REQUEST.
 
             inventory_item.save()
             return self.render_json_response({"inventory_id": inventory_item.pk})
@@ -315,14 +315,20 @@ class IsRegisteredUser(JSONResponseMixin, CsrfExemptMixin, APIView):
         return self.render_json_response({"registered": is_registration_complete})
 
 
-class ListingsByCategory(JSONResponseMixin, CsrfExemptMixin, APIView):
-    def __init__(self):
-        pass
+class ListingsByCategory(generics.ListAPIView):
+    serializer_class = InventoryItemSerializerNew
 
-    @csrf_exempt
-    def get_queryset(self, request):
-        print(request.params)
-        return self.render_json_response({"response": "listingsbycategory"})
+    def __init__(self):
+        self.response = {
+            "listings": None,
+            "errors": None
+        }
+
+    def get_queryset(self):
+        print(self.request.query_params)
+        category_id = get_product_category(category=self.kwargs["category"])
+        queryset = Inventory.objects.filter(product_category=category_id)
+        return queryset
 
 
 class ListingsByProduct(JSONResponseMixin, CsrfExemptMixin, APIView):
@@ -387,9 +393,13 @@ class PlaygroundView1(JSONResponseMixin, CsrfExemptMixin, APIView):
                                           })
 
 
-class PlaygroundView(JSONResponseMixin, CsrfExemptMixin, APIView):
+class PlaygroundView2(JSONResponseMixin, CsrfExemptMixin, APIView):
     def __init__(self):
-        pass
+        self.response = {
+            "listings": None,
+            "errors": None
+        }
+
 
     def get_queryset(self):
         seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
@@ -398,13 +408,21 @@ class PlaygroundView(JSONResponseMixin, CsrfExemptMixin, APIView):
         return queryset
 
     def post(self, request):
-        seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
-        queryset = Inventory.objects.filter(seller=seller).values()
+        category_id = get_product_category(category=request.data.get("category_name"))
+        if not category_id:
+            self.response["errors"] = "No such category found."
+        else:
+            self.response["listings"] = get_listings_by_category(category=category_id)
 
-        mylistings = []
-        for l in queryset:
-            mylistings.append(l)
+        print(self.response)
+        return self.render_json_response({"repsonse": self.response})
 
-        print(mylistings)
 
-        return self.render_json_response({"repsonse": mylistings})
+class PlaygroundView(generics.ListAPIView):
+    serializer_class = InventoryItemSerializerNew
+
+    def get_queryset(self):
+        print(self.request.query_params)
+        category_id = get_product_category(category=self.request.query_params.get("category_name"))
+        queryset = Inventory.objects.filter(product_category=category_id)
+        return queryset

@@ -51,7 +51,6 @@ class ProductCategory(models.Model):
     category_name = models.CharField(max_length=64, unique=True)
 
 
-
 # a product has an id, and it belongs to a category.
 class Product(models.Model):
     product_id = models.AutoField(primary_key=True)

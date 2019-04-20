@@ -121,6 +121,7 @@ CORS_ORIGIN_WHITELIST = (
     'localhost:4200',
     '127.0.0.1:4200',
 )
+DATA_UPLOAD_MAX_MEMORY_SIZE = 8242880 # 8MB
 
 WSGI_APPLICATION = 'superfarmer.wsgi.application'
 
