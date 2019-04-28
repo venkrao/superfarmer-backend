@@ -13,6 +13,8 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework_serializer_extensions.views import SerializerExtensionsAPIViewMixin
 from rest_framework import generics
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
 
 class UsersView(viewsets.GenericViewSet):
     def get(self, request):
@@ -23,7 +25,6 @@ class UsersView(viewsets.GenericViewSet):
 class UserCategoryView(viewsets.ModelViewSet, APIView):
     queryset = UserCategory.objects.all()
     serializer_class = UserCategorySerializer
-
 
 
 class UserStatusView(viewsets.ModelViewSet, APIView):
@@ -112,32 +113,19 @@ class InventoryItemStatusView(viewsets.ModelViewSet):
     serializer_class = InventoryItemStatusSerializer
 
 
-class MyListingsView(JSONResponseMixin, generics.ListCreateAPIView):
-    def __init__(self):
-        pass
+class MyListingsView(generics.ListAPIView):
+    serializer_class = InventoryItemSerializerNew
 
     def get_queryset(self):
         seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
         queryset = Inventory.objects.filter(seller=seller)
-
-        return self.render_json_response({"response": queryset})
-
-    def post(self, request):
-        seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
-        queryset = Inventory.objects.filter(seller=seller).values()
-
-        mylistings = []
-        for l in queryset:
-            mylistings.append(l)
-
-        print(mylistings)
-
-        return self.render_json_response({"repsonse": mylistings})
+        return queryset
 
 
 class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
     queryset = Inventory.objects.all()
     serializer_class = InventoryItemSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     @csrf_exempt
     def post(self, request):
@@ -158,7 +146,7 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
             inventory_item.item_picture = item_picture
             inventory_item.item_price = request.data.get("price")
             inventory_item.product_category = get_product_category(
-                category=inventory_item.product.product_category.category_id)  # TODO: THIS SHOULD BE READ OUT OF THE REQUEST.
+                category=inventory_item.product.product_category.category_id)
 
             inventory_item.save()
             return self.render_json_response({"inventory_id": inventory_item.pk})
@@ -167,9 +155,11 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
             return self.render_json_response({"inventory_update": "failed"})
 
 
-class InventoryItemView(JSONResponseMixin, generics.ListAPIView, generics.UpdateAPIView):
+class InventoryItemView(JSONResponseMixin, viewsets.ModelViewSet):
     queryset = Inventory.objects.all()
     serializer_class = InventoryItemSerializerNew
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+
 
     def get_queryset(self):
         unformatted = Inventory.objects.filter(inventory_item_id=self.kwargs["pk"])
@@ -185,6 +175,8 @@ class InventoryItemView(JSONResponseMixin, generics.ListAPIView, generics.Update
 
         return self.render_json_response({"status": "updated"})
 
+    def destroy(self, request, *args, **kwargs):
+        return {"response": "deleted"}
 
 # each inventory item can have its own address. Default is sellers address.
 class InventoryItemAddressView(JSONResponseMixin, viewsets.ModelViewSet):

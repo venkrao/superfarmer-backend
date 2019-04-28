@@ -90,6 +90,7 @@ class ProductNameSerializer(serializers.ModelSerializer):
         model = Product
         fields = ['product_name']
 
+
 # list of sellers, with the list of products they sell.
 class SellerNameSerializer(SerializerExtensionsMixin, serializers.ModelSerializer):
         class Meta:
@@ -101,7 +102,6 @@ class SellerNameSerializer(SerializerExtensionsMixin, serializers.ModelSerialize
                     serializer=UserNameSerializer,
                     id_source='seller.pk'),
             )
-
 
 
 # list of sellers, with the list of products they sell.

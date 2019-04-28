@@ -2,6 +2,7 @@ from .models import *
 from superfarmer.settings import MEDIA_ROOT, MEDIA_URL
 from collections import OrderedDict
 
+
 def get_user_registration_status(request):
     registration_status = None
     try:
