@@ -49,7 +49,7 @@ urlpatterns = [
     url(r'userauth', UserAuth.as_view()),
     url(r'userregistrationstatus', IsRegisteredUser.as_view()),
     url(r'userprofile', UserProfileView.as_view()),
-    url(r'playground/', PlaygroundView.as_view()),
+    url(r'playground/(?P<pk>[^/.]+)/$', PlaygroundView.as_view({'get': 'list'})),
     url(r'inventory/(?P<pk>[^/.]+)/$', InventoryItemView.as_view({'get': 'list'})),
     url(r'inventory/$', InventoryView().as_view()),
     url(r'listingsbycategory/(?P<category>[^/.]+)/$', ListingsByCategory().as_view()),

@@ -122,6 +122,7 @@ class MyListingsView(generics.ListAPIView):
         return queryset
 
 
+
 class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
     queryset = Inventory.objects.all()
     serializer_class = InventoryItemSerializer
@@ -160,13 +161,13 @@ class InventoryItemView(JSONResponseMixin, viewsets.ModelViewSet):
     serializer_class = InventoryItemSerializerNew
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
-
     def get_queryset(self):
         unformatted = Inventory.objects.filter(inventory_item_id=self.kwargs["pk"])
         return unformatted
 
     def post(self, request, **kwargs):
-        # TODO: implement inventory update post method.
+        return False
+        # Update is not supported.
         instance = self.get_object()
 
         serializer = self.get_serializer(instance)
@@ -175,8 +176,19 @@ class InventoryItemView(JSONResponseMixin, viewsets.ModelViewSet):
 
         return self.render_json_response({"status": "updated"})
 
-    def destroy(self, request, *args, **kwargs):
-        return {"response": "deleted"}
+    def delete(self, request, *args, **kwargs):
+        print("Delete was requested by user {}".format (request.user))
+        seller = get_seller(request)
+        inventory_item = self.get_queryset()
+        if len(inventory_item) > 0:
+            if str(inventory_item[0].seller.seller.name) == str(request.user):
+                self.get_queryset().delete()
+                return self.render_json_response({"response": "deleted"})
+            else:
+                return self.render_json_response({"response": "permission_denied"})
+        else:
+            return self.render_json_response({"response": "No such listing!"})
+
 
 # each inventory item can have its own address. Default is sellers address.
 class InventoryItemAddressView(JSONResponseMixin, viewsets.ModelViewSet):
@@ -410,11 +422,34 @@ class PlaygroundView2(JSONResponseMixin, CsrfExemptMixin, APIView):
         return self.render_json_response({"repsonse": self.response})
 
 
-class PlaygroundView(generics.ListAPIView):
+class PlaygroundView(JSONResponseMixin, viewsets.ModelViewSet):
+    queryset = Inventory.objects.all()
     serializer_class = InventoryItemSerializerNew
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_queryset(self):
-        print(self.request.query_params)
-        category_id = get_product_category(category=self.request.query_params.get("category_name"))
-        queryset = Inventory.objects.filter(product_category=category_id)
-        return queryset
+        unformatted = Inventory.objects.filter(inventory_item_id=self.kwargs["pk"])
+        return unformatted
+
+    def post(self, request, **kwargs):
+        # TODO: implement inventory update post method.
+        instance = self.get_object()
+
+        serializer = self.get_serializer(instance)
+        serializer.is_valid(raise_exception=True)
+        serializer.update(instance, self.request.data)
+
+        return self.render_json_response({"status": "updated"})
+
+    def delete(self, request, *args, **kwargs):
+        print("Delete was requested by user {}".format (request.user))
+        seller = get_seller(request)
+        inventory_item = self.get_queryset()
+        if len(inventory_item) > 0:
+            if str(inventory_item[0].seller.seller.name) == str(request.user):
+                self.get_queryset().delete()
+                return self.render_json_response({"response": "deleted"})
+            else:
+                return self.render_json_response({"response": "permission_denied"})
+        else:
+            return self.render_json_response({"response": "No such listing!"})
