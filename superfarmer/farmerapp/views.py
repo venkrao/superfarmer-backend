@@ -379,60 +379,27 @@ class RegisterAsSeller(JSONResponseMixin, CsrfExemptMixin, APIView):
                 return self.render_json_response({"response": "failed"})
 
 
-class PlaygroundView1(JSONResponseMixin, CsrfExemptMixin, APIView):
-    def __init__(self):
-        pass
-
-    @csrf_exempt
-    def post(self, request):
-        print(request.user)
-        registration_status = UserAuth().is_registration_complete(request)
-        email_verification_status = UserAuth().is_email_verified(request)
-        phone_verification_status = UserAuth().is_phone_verified(request)
-
-        return self.render_json_response({"response": {"email_verification_status": email_verification_status,
-                                                       "registration_status": registration_status,
-                                                       "phone_verification_status": phone_verification_status,
-                                                       }
-                                          })
+class TextTemplateView(viewsets.ModelViewSet, APIView):
+    queryset = TextTemplate.objects.all()
+    serializer_class = TextTemplateSerializer
 
 
-class PlaygroundView2(JSONResponseMixin, CsrfExemptMixin, APIView):
-    def __init__(self):
-        self.response = {
-            "listings": None,
-            "errors": None
-        }
-
-
-    def get_queryset(self):
-        seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
-        queryset = Inventory.objects.filter(seller=seller)
-
-        return queryset
-
-    def post(self, request):
-        category_id = get_product_category(category=request.data.get("category_name"))
-        if not category_id:
-            self.response["errors"] = "No such category found."
-        else:
-            self.response["listings"] = get_listings_by_category(category=category_id)
-
-        print(self.response)
-        return self.render_json_response({"repsonse": self.response})
+class NegotiationRequestView(viewsets.ModelViewSet, APIView):
+    queryset = NegotiationRequest.objects.all()
+    serializer_class = NegotiationRequestSerializer
 
 
 class PlaygroundView(JSONResponseMixin, viewsets.ModelViewSet):
-    queryset = Inventory.objects.all()
-    serializer_class = InventoryItemSerializerNew
+    queryset = NegotiationRequest.objects.all()
+    serializer_class = NegotiationRequestSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_queryset(self):
-        unformatted = Inventory.objects.filter(inventory_item_id=self.kwargs["pk"])
+        unformatted = NegotiationRequest.objects.filter(inventory_item_id=self.kwargs["pk"])
         return unformatted
 
     def post(self, request, **kwargs):
-        # TODO: implement inventory update post method.
+        inventory_item_id = self.kwargs["pk"]
         instance = self.get_object()
 
         serializer = self.get_serializer(instance)
@@ -453,3 +420,5 @@ class PlaygroundView(JSONResponseMixin, viewsets.ModelViewSet):
                 return self.render_json_response({"response": "permission_denied"})
         else:
             return self.render_json_response({"response": "No such listing!"})
+
+

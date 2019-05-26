@@ -40,6 +40,8 @@ router.register(r'registrationstatus', RegistrationStatusView)
 
 router.register(r'transporter', TransporterView)
 router.register(r'vehicle', VehicleView)
+router.register(r'texttemplate', TextTemplateView)
+router.register(r'negotiationrequest', NegotiationRequestView)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

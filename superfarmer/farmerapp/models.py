@@ -29,7 +29,7 @@ class Users(models.Model):
 
     registration_status = models.ForeignKey(RegistrationStatus, on_delete=models.CASCADE)
 
-
+Users.objects.all()
 class UserProfile(models.Model):
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE)
     about_me = models.CharField(max_length=512)
@@ -138,3 +138,18 @@ class Transporter(models.Model):
     class Meta:
         unique_together = ("transporter_id", "vehicle")
 
+
+class TextTemplate(models.Model):
+    template_id = models.IntegerField()
+    template = models.TextField()
+
+
+class NegotiationRequest(models.Model):
+    request_id = models.BigIntegerField()
+    listing_id = models.ForeignKey(Inventory, on_delete=models.CASCADE)
+    buyer = models.ForeignKey(Buyer, on_delete=models.CASCADE)
+    sent_on = models.DateTimeField(default=now)
+    sent_by = models.ForeignKey(Users, on_delete=models.CASCADE)
+    request_body = models.ForeignKey(TextTemplate, on_delete=models.CASCADE)
+    seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
+    accepted = models.BooleanField(default=False)
