@@ -384,41 +384,61 @@ class TextTemplateView(viewsets.ModelViewSet, APIView):
     serializer_class = TextTemplateSerializer
 
 
-class NegotiationRequestView(viewsets.ModelViewSet, APIView):
+class NegotiationRequestView(JSONResponseMixin, viewsets.ModelViewSet):
     queryset = NegotiationRequest.objects.all()
     serializer_class = NegotiationRequestSerializer
+
+    @csrf_exempt
+    def post(self, request):
+        print(request.data.get("listing_id"))
+        listing_id = request.data.get("listing_id")
+        listing_instance = get_inventory_item_instance(listing_id=listing_id)
+        buyer = get_request_as_buyer(request)
+        listing_details = get_listing_details(listing_id=listing_id)
+        sent_by = "buyer"
+        request_body = request.data.get("request_body", "Hello, lets do business.")
+        seller = get_seller_of_listing(listing_id=listing_id)
+
+        negotiation_request = NegotiationRequest()
+        negotiation_request.listing_id = listing_instance
+        negotiation_request.buyer = buyer
+        negotiation_request.request_body = request_body
+        negotiation_request.seller = seller
+        negotiation_request.accepted = False
+        print("{} {} {} {} {}".format(listing_id, buyer, sent_by, request_body, seller))
+        try:
+            negotiation_request.save()
+            return self.render_json_response({"response": negotiation_request.pk})
+        except:
+
+            return self.render_json_response({"response": "Failed"})
 
 
 class PlaygroundView(JSONResponseMixin, viewsets.ModelViewSet):
     queryset = NegotiationRequest.objects.all()
     serializer_class = NegotiationRequestSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
 
-    def get_queryset(self):
-        unformatted = NegotiationRequest.objects.filter(inventory_item_id=self.kwargs["pk"])
-        return unformatted
+    @csrf_exempt
+    def post(self, request):
+        print(request.data.get("listing_id"))
+        listing_id = request.data.get("listing_id")
+        listing_instance = get_inventory_item_instance(listing_id=listing_id)
+        buyer = get_request_as_buyer(request)
+        listing_details = get_listing_details(listing_id=listing_id)
+        sent_by = "buyer"
+        request_body = request.data.get("request_body", "Hello, lets do business.")
+        seller = get_seller_of_listing(listing_id=listing_id)
 
-    def post(self, request, **kwargs):
-        inventory_item_id = self.kwargs["pk"]
-        instance = self.get_object()
-
-        serializer = self.get_serializer(instance)
-        serializer.is_valid(raise_exception=True)
-        serializer.update(instance, self.request.data)
-
-        return self.render_json_response({"status": "updated"})
-
-    def delete(self, request, *args, **kwargs):
-        print("Delete was requested by user {}".format (request.user))
-        seller = get_seller(request)
-        inventory_item = self.get_queryset()
-        if len(inventory_item) > 0:
-            if str(inventory_item[0].seller.seller.name) == str(request.user):
-                self.get_queryset().delete()
-                return self.render_json_response({"response": "deleted"})
-            else:
-                return self.render_json_response({"response": "permission_denied"})
-        else:
-            return self.render_json_response({"response": "No such listing!"})
-
+        negotiation_request = NegotiationRequest()
+        negotiation_request.listing_id = listing_instance
+        negotiation_request.buyer = buyer
+        negotiation_request.request_body = request_body
+        negotiation_request.seller = seller
+        negotiation_request.accepted = False
+        print("{} {} {} {} {}".format(listing_id, buyer, sent_by, request_body, seller))
+        try:
+            negotiation_request.save()
+            return self.render_json_response({"response": negotiation_request.pk})
+        except:
+            return self.render_json_response({"response": "Failed"})
 

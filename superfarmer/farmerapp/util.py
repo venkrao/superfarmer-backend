@@ -52,7 +52,46 @@ def is_seller(request):
         return None
 
 
-def get_seller(request):
+def get_listing_details(listing_id=None):
+    try:
+        print("Looking for listing details of: {}".format(listing_id))
+        listing_details = Inventory.objects.get(inventory_item_id=listing_id)
+        print(listing_details)
+        return listing_details
+    except:
+        print("No such listing: {}".format(listing_id))
+        return None
+
+
+def get_user_as_buyer(user_id=None):
+    try:
+         buyer = Buyer.objects.get(buyer_id=user_id)
+         return buyer
+    except:
+        print("get_user_as_buyer: No results for: {}".format(user_id))
+        return None
+
+
+def get_request_as_buyer(request=None):
+    try:
+        user_id = get_user(request).user_id
+        buyer = get_user_as_buyer(user_id=user_id)
+        return buyer
+    except:
+        print("get_request_as_buyer: No results for: {}".format(request))
+        return None
+
+
+def get_seller_of_listing(listing_id=None):
+    listing_details = get_listing_details(listing_id=listing_id)
+    try:
+        return listing_details.seller
+    except:
+        print("get_seller_of_listing: No results for: {}".format(listing_id))
+        return None
+
+
+def get_seller(request=None):
     try:
         user_id = get_user(request)
         print("user_id = {}".format(user_id))
@@ -159,6 +198,7 @@ def sanitize_inventory_item(instance):
     sanitized["inventory_item_status"] = instance.get("inventory_item_status").get("status")
     sanitized["product_name"] = instance.get("product").get("product_name")
     sanitized["product_category"] = instance.get("product").get("product_category").get("category_name")
+
     sanitized["seller_name"] = instance.get("seller").get("seller").get("name")
     sanitized["measuring_unit"] = instance.get("product_measuring_unit").get("measuring_unit")
 
@@ -192,3 +232,12 @@ def get_listings_by_category(category=None):
         pass
 
     return listings_by_category
+
+
+def get_inventory_item_instance(listing_id=None):
+    try:
+        instance = Inventory.objects.get(inventory_item_id=listing_id)
+        return instance
+    except:
+        print("get_inventory_item_instance: No results for: {}".format(listing_id))
+        return None

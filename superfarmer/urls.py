@@ -41,7 +41,7 @@ router.register(r'registrationstatus', RegistrationStatusView)
 router.register(r'transporter', TransporterView)
 router.register(r'vehicle', VehicleView)
 router.register(r'texttemplate', TextTemplateView)
-router.register(r'negotiationrequest', NegotiationRequestView)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -51,13 +51,14 @@ urlpatterns = [
     url(r'userauth', UserAuth.as_view()),
     url(r'userregistrationstatus', IsRegisteredUser.as_view()),
     url(r'userprofile', UserProfileView.as_view()),
-    url(r'playground/(?P<pk>[^/.]+)/$', PlaygroundView.as_view({'get': 'list'})),
+    url(r'playground/', PlaygroundView.as_view({'get': 'list'})),
     url(r'inventory/(?P<pk>[^/.]+)/$', InventoryItemView.as_view({'get': 'list'})),
     url(r'inventory/$', InventoryView().as_view()),
     url(r'listingsbycategory/(?P<category>[^/.]+)/$', ListingsByCategory().as_view()),
     url(r'me/listings$', MyListingsView().as_view()),
     url(r'isseller/', IsSeller.as_view()),
     url(r'register-as-seller/', RegisterAsSeller.as_view()),
+    url(r'negotiationrequest/$', NegotiationRequestView.as_view({'get': 'list'}))
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

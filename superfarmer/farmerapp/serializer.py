@@ -5,6 +5,8 @@ from rest_framework.serializers import ModelSerializer
 from rest_framework_serializer_extensions.serializers import SerializerExtensionsMixin
 from collections import OrderedDict
 from .util import *
+from django.db.models import Q
+from rest_framework.fields import CurrentUserDefault
 
 class UserCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -236,7 +238,6 @@ class InventoryItemSerializer(SerializerExtensionsMixin, ModelSerializer):
         fields = '__all__'
         depth = 6
 
-
     def to_representation(self, instance):
         sanitized = {}
         try:
@@ -258,6 +259,7 @@ class InventoryItemSerializer(SerializerExtensionsMixin, ModelSerializer):
 
             ret.update(address=address)
             sanitized = sanitize_inventory_item(ret)
+
             return sanitized
         except Exception:
             return sanitized
@@ -340,3 +342,10 @@ class NegotiationRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = NegotiationRequest
         fields = '__all__'
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        user = user =  self.context['request'].user
+        print(user)
+        print(ret)
+        return ret

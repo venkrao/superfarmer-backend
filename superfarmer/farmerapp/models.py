@@ -145,11 +145,14 @@ class TextTemplate(models.Model):
 
 
 class NegotiationRequest(models.Model):
-    request_id = models.BigIntegerField()
+    request_id = models.AutoField(primary_key=True)
     listing_id = models.ForeignKey(Inventory, on_delete=models.CASCADE)
     buyer = models.ForeignKey(Buyer, on_delete=models.CASCADE)
     sent_on = models.DateTimeField(default=now)
-    sent_by = models.ForeignKey(Users, on_delete=models.CASCADE)
-    request_body = models.ForeignKey(TextTemplate, on_delete=models.CASCADE)
+    sent_by = models.TextField() # A seller can contact a buyer, or a buyer can contact a seller. This field is just that.
+    request_body = models.TextField()
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
     accepted = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ("listing_id", "buyer")
