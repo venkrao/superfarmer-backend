@@ -1,7 +1,7 @@
 from .models import *
 from superfarmer.settings import MEDIA_ROOT, MEDIA_URL
 from collections import OrderedDict
-
+import traceback
 
 def get_user_registration_status(request):
     registration_status = None
@@ -29,6 +29,15 @@ def get_user(request):
         user = Users.objects.get(email_address=request.user.email)
         print("user = {}".format(user))
         return user
+    except:
+        return None
+
+
+def get_user_id_by_name(username=None):
+    try:
+        user = Users.objects.get(name=username)
+        print("user = {}".format(user))
+        return user.user_id
     except:
         return None
 
@@ -63,6 +72,16 @@ def get_listing_details(listing_id=None):
         return None
 
 
+def get_buyer_name(id=None, buyer_id=None):
+    if id:
+        buyer_id = Buyer.objects.get(id=id).buyer_id.user_id
+        buyer_name = Users.objects.get(user_id=buyer_id).name
+        return buyer_name
+
+    if buyer_id:
+        buyer_name = Users.objects.get(buyer_id=buyer_id).name
+        return buyer_name
+
 def get_user_as_buyer(user_id=None):
     try:
          buyer = Buyer.objects.get(buyer_id=user_id)
@@ -95,6 +114,16 @@ def get_seller(request=None):
     try:
         user_id = get_user(request)
         print("user_id = {}".format(user_id))
+        seller = Seller.objects.get(seller=user_id)
+        return seller
+    except:
+        print("{} is not a registered seller.".format(request.user_id))
+
+        return None
+
+
+def get_seller_from_id(user_id=None):
+    try:
         seller = Seller.objects.get(seller=user_id)
         return seller
     except:
@@ -161,6 +190,42 @@ def get_inventory_item_address(item_id=None):
     return address
 
 
+def get_seller_name(seller_id=None):
+    seller_obj = Seller.objects.get(id=seller_id)
+    seller_user_id = seller_obj.seller.user_id
+    print("seller_user_id = {}".format(seller_user_id))
+    user = Users.objects.get(user_id=seller_user_id)
+    return user.name
+
+
+def get_listing_title(listing_id=None):
+    return get_listing_details(listing_id).listing_title
+
+
+def sanitize_negotiation_request_sent(negotiationRequest=None):
+    sanitized = OrderedDict()
+    sanitized["listing_id"] = negotiationRequest.get("listing_id")
+    sanitized["seller"] = negotiationRequest.get("seller_name")
+    sanitized["request_body"] = negotiationRequest.get("request_body")
+    sanitized["listing_title"] = negotiationRequest.get("listing_title")
+    sanitized["sent_on"] = negotiationRequest.get("sent_on")
+    sanitized["accepted"] = "Pending" if negotiationRequest.get("accepted") == False else "Rejected"
+
+    return sanitized
+
+
+def sanitize_negotiation_request_received(negotiationRequest=None):
+    sanitized = OrderedDict()
+    sanitized["listing_id"] = negotiationRequest.get("listing_id")
+    sanitized["buyer"] = negotiationRequest.get("buyer")
+    sanitized["request_body"] = negotiationRequest.get("request_body")
+    sanitized["listing_title"] = negotiationRequest.get("listing_title")
+    sanitized["sent_on"] = negotiationRequest.get("sent_on")
+    sanitized["accepted"] = "Pending" if negotiationRequest.get("accepted") == False else "Rejected"
+
+    return sanitized
+
+
 def sanitize_user_address(userProfile=None):
     sanitized = OrderedDict()
     sanitized["about_seller"] = userProfile.get("about_me")
@@ -202,6 +267,8 @@ def sanitize_inventory_item(instance):
     sanitized["seller_name"] = instance.get("seller").get("seller").get("name")
     sanitized["measuring_unit"] = instance.get("product_measuring_unit").get("measuring_unit")
 
+    sanitized["soldby"] = instance.get("soldby", False)
+
     address = OrderedDict()
 
     address.update(address=instance.get("address").get("address"))
@@ -215,7 +282,15 @@ def sanitize_inventory_item(instance):
     address.update(email_verified=instance.get("address").get("email_verified"))
 
     sanitized["address"] = address
+
+
+
     return sanitized
+
+
+def get_listings():
+    listings = Inventory.objects.get()
+    return listings
 
 
 def get_listings_by_category(category=None):

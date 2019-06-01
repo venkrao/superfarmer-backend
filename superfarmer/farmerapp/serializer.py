@@ -157,6 +157,30 @@ class InventoryItemSerializerNew(ModelSerializer):
             address["email_verified"] = userProfile.get("email_verified", "false")
 
         ret.update(address=address)
+
+        seller_user_id = sellerInstance.get("seller").get("user_id")
+        requesting_user = get_user_id_by_name(username=self.context['request'].user)
+        if (requesting_user):
+            if requesting_user == seller_user_id:
+                print("seller is self")
+                ret.update(soldby="self")
+            else:
+                print("current user is not the seller")
+                try:
+                    buyer = get_user_as_buyer(requesting_user)
+                    existing_record = NegotiationRequest.objects.get(
+                        Q(listing_id=ret.get("inventory_item_id")),
+                        Q(buyer=buyer)
+                    )
+                    print("existing record")
+                    if existing_record.listing_id:
+                        ret.update(soldby="already_contacted")
+                except:
+                    # We should keep going if the record doesn't exist.
+                    ret.update(soldby="real_seller")
+        else:
+            ret.update(soldby="user_not_loggedin")
+
         sanitized = sanitize_inventory_item(ret)
 
         return sanitized
@@ -242,10 +266,31 @@ class InventoryItemSerializer(SerializerExtensionsMixin, ModelSerializer):
         sanitized = {}
         try:
             ret = super().to_representation(instance)
-
             sellerInstance = ret.get("seller")
-            user_id = sellerInstance.get("seller").get("user_id")
-            userProfile = UserProfileSerializer(UserProfile.objects.get(user_id=user_id)).data
+            seller_user_id = sellerInstance.get("seller").get("user_id")
+            requesting_user = get_user_id_by_name(username=self.context['request'].user)
+            if (requesting_user):
+                if requesting_user == seller_user_id:
+                    print("seller is self")
+                    ret.update(soldby="self")
+                else:
+                    print("current user is not the seller")
+                    try:
+                        buyer = get_user_as_buyer(requesting_user)
+                        existing_record = NegotiationRequest.objects.get(
+                            Q(listing_id=ret.get("inventory_item_id")),
+                            Q(buyer=buyer)
+                        )
+                        print("existing record")
+                        if existing_record.listing_id:
+                            ret.update(soldby="already_contacted")
+                    except:
+                        # We should keep going if the record doesn't exist.
+                        ret.update(soldby="real_seller")
+            else:
+                ret.update(soldby="user_not_loggedin")
+
+            userProfile = UserProfileSerializer(UserProfile.objects.get(user_id=seller_user_id)).data
 
             address = get_inventory_item_address(item_id=ret.get("inventory_item_id"))
 
@@ -262,6 +307,7 @@ class InventoryItemSerializer(SerializerExtensionsMixin, ModelSerializer):
 
             return sanitized
         except Exception:
+            traceback.print_exc()
             return sanitized
 
     def update(self, instance, validated_data):
@@ -343,9 +389,33 @@ class NegotiationRequestSerializer(serializers.ModelSerializer):
         model = NegotiationRequest
         fields = '__all__'
 
+
+class MyNegotiationRequestsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NegotiationRequest
+        fields = '__all__'
+
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        user = user =  self.context['request'].user
-        print(user)
-        print(ret)
-        return ret
+
+        seller_name = get_seller_name(seller_id=ret.get("seller"))
+        ret["seller_name"] = seller_name
+        ret["listing_title"] = get_listing_title(listing_id=ret["listing_id"])
+
+        return sanitize_negotiation_request_sent(ret)
+
+
+class MyNegotiationRequestsSerializerReceived(serializers.ModelSerializer):
+    class Meta:
+        model = NegotiationRequest
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+
+        buyer_id = ret.get("buyer")
+        buyer = get_buyer_name(id=buyer_id)
+        ret["buyer"] = buyer
+        ret["listing_title"] = get_listing_title(listing_id=ret["listing_id"])
+
+        return sanitize_negotiation_request_received(ret)

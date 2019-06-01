@@ -141,7 +141,6 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
             inventory_item.inventory_item_status = InventoryItemStatus.objects.get(pk=2)
             inventory_item.product = get_product(product_name=request.data.get("product_name"))
             inventory_item.inventory_product_quantity = request.data.get("quantity")
-
             inventory_item.seller = get_seller(request)
             inventory_item.product_measuring_unit = get_product_measuring_unit(request.data.get("measuring_unit"))
             inventory_item.item_picture = item_picture
@@ -154,6 +153,7 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
         except:
             traceback.print_exc()
             return self.render_json_response({"inventory_update": "failed"})
+
 
 
 class InventoryItemView(JSONResponseMixin, viewsets.ModelViewSet):
@@ -396,8 +396,23 @@ class NegotiationRequestView(JSONResponseMixin, viewsets.ModelViewSet):
         buyer = get_request_as_buyer(request)
         listing_details = get_listing_details(listing_id=listing_id)
         sent_by = "buyer"
-        request_body = request.data.get("request_body", "Hello, lets do business.")
+        request_body = "Hello, lets do business." if request.data.get("request_body") =="" or \
+        request.data.get("request_body") == "undefined" else request.data.get("request_body")
+
         seller = get_seller_of_listing(listing_id=listing_id)
+
+        # Check the need for inserting a new record.
+        try:
+            existing_record = NegotiationRequest.objects.get(
+                Q(listing_id=listing_id),
+                Q(buyer=buyer)
+            )
+            print("existing record")
+            if existing_record.listing_id:
+                return self.render_json_response({"response": "failed", "reason": "You've contacted this seller already."})
+        except:
+            # We should keep going if the record doesn't exist.
+            pass
 
         negotiation_request = NegotiationRequest()
         negotiation_request.listing_id = listing_instance
@@ -405,40 +420,70 @@ class NegotiationRequestView(JSONResponseMixin, viewsets.ModelViewSet):
         negotiation_request.request_body = request_body
         negotiation_request.seller = seller
         negotiation_request.accepted = False
+        negotiation_request.sent_by = sent_by
         print("{} {} {} {} {}".format(listing_id, buyer, sent_by, request_body, seller))
         try:
             negotiation_request.save()
             return self.render_json_response({"response": negotiation_request.pk})
         except:
 
-            return self.render_json_response({"response": "Failed"})
+            return self.render_json_response({"response": "failed"})
+
+
+class MeNegotiationRequestSent(JSONResponseMixin, viewsets.ModelViewSet):
+    queryset = NegotiationRequest.objects.all()
+    serializer_class = MyNegotiationRequestsSerializer
+
+    def get_queryset(self):
+        try:
+            requesting_user = get_user_id_by_name(username=self.request.user)
+            buyer = get_user_as_buyer(requesting_user)
+            negotiation_requests = NegotiationRequest.objects.filter(
+                Q(buyer=buyer)
+            )
+            
+            print(negotiation_requests)
+
+            return negotiation_requests
+        except:
+            # We should keep going if the record doesn't exist.
+            pass
+
+
+class MeNegotiationRequestReceived(JSONResponseMixin, viewsets.ModelViewSet):
+    queryset = NegotiationRequest.objects.all()
+    serializer_class = MyNegotiationRequestsSerializerReceived
+
+    def get_queryset(self):
+        try:
+            requesting_user_id = get_user_id_by_name(username=self.request.user)
+            seller = get_seller_from_id(user_id=requesting_user_id)
+            negotiation_requests_received = NegotiationRequest.objects.filter(
+                Q(seller=seller)
+            )
+
+            return negotiation_requests_received
+        except:
+            raise
+            # We should keep going if the record doesn't exist.
+            pass
 
 
 class PlaygroundView(JSONResponseMixin, viewsets.ModelViewSet):
     queryset = NegotiationRequest.objects.all()
-    serializer_class = NegotiationRequestSerializer
+    serializer_class = MyNegotiationRequestsSerializer
 
-    @csrf_exempt
-    def post(self, request):
-        print(request.data.get("listing_id"))
-        listing_id = request.data.get("listing_id")
-        listing_instance = get_inventory_item_instance(listing_id=listing_id)
-        buyer = get_request_as_buyer(request)
-        listing_details = get_listing_details(listing_id=listing_id)
-        sent_by = "buyer"
-        request_body = request.data.get("request_body", "Hello, lets do business.")
-        seller = get_seller_of_listing(listing_id=listing_id)
-
-        negotiation_request = NegotiationRequest()
-        negotiation_request.listing_id = listing_instance
-        negotiation_request.buyer = buyer
-        negotiation_request.request_body = request_body
-        negotiation_request.seller = seller
-        negotiation_request.accepted = False
-        print("{} {} {} {} {}".format(listing_id, buyer, sent_by, request_body, seller))
+    def get_queryset(self):
         try:
-            negotiation_request.save()
-            return self.render_json_response({"response": negotiation_request.pk})
-        except:
-            return self.render_json_response({"response": "Failed"})
+            requesting_user_id = get_user_id_by_name(username=self.request.user)
+            seller = get_seller_from_id(user_id=requesting_user_id)
+            negotiation_requests = NegotiationRequest.objects.filter(
+                Q(seller=seller)
+            )
+            if not negotiation_requests:
+                return self.render_json_response({"response": "failed", "listings": "[]"})
 
+            return negotiation_requests
+        except:
+            # We should keep going if the record doesn't exist.
+            pass
