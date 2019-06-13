@@ -14,7 +14,7 @@ from rest_framework_serializer_extensions.views import SerializerExtensionsAPIVi
 from rest_framework import generics
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-
+from .. import settings
 
 class UsersView(viewsets.GenericViewSet):
     def get(self, request):
@@ -113,14 +113,13 @@ class InventoryItemStatusView(viewsets.ModelViewSet):
     serializer_class = InventoryItemStatusSerializer
 
 
-class MyListingsView(generics.ListAPIView):
+class MyListingsView(viewsets.ModelViewSet):
     serializer_class = InventoryItemSerializerNew
 
     def get_queryset(self):
         seller = Seller.objects.get(seller=Users.objects.get(name=self.request.user))
         queryset = Inventory.objects.filter(seller=seller)
         return queryset
-
 
 
 class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
@@ -131,10 +130,6 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
     @csrf_exempt
     def post(self, request):
         try:
-            item_picture = handle_uploaded_file(request.FILES["image"])
-
-            if item_picture == "error":
-                raise Exception
 
             inventory_item = Inventory()
             inventory_item.listing_title = request.data.get("listing_title")
@@ -143,6 +138,12 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
             inventory_item.inventory_product_quantity = request.data.get("quantity")
             inventory_item.seller = get_seller(request)
             inventory_item.product_measuring_unit = get_product_measuring_unit(request.data.get("measuring_unit"))
+
+            item_picture = handle_uploaded_file(file=request.FILES["image"], seller=inventory_item.seller)
+
+            if item_picture == "error":
+                raise Exception
+
             inventory_item.item_picture = item_picture
             inventory_item.item_price = request.data.get("price")
             inventory_item.product_category = get_product_category(
@@ -153,7 +154,6 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
         except:
             traceback.print_exc()
             return self.render_json_response({"inventory_update": "failed"})
-
 
 
 class InventoryItemView(JSONResponseMixin, viewsets.ModelViewSet):
@@ -180,9 +180,12 @@ class InventoryItemView(JSONResponseMixin, viewsets.ModelViewSet):
         print("Delete was requested by user {}".format (request.user))
         seller = get_seller(request)
         inventory_item = self.get_queryset()
+        print(inventory_item)
         if len(inventory_item) > 0:
             if str(inventory_item[0].seller.seller.name) == str(request.user):
                 self.get_queryset().delete()
+                delete_listing_image(filename=inventory_item[0].item_picture)
+
                 return self.render_json_response({"response": "deleted"})
             else:
                 return self.render_json_response({"response": "permission_denied"})
@@ -384,12 +387,39 @@ class TextTemplateView(viewsets.ModelViewSet, APIView):
     serializer_class = TextTemplateSerializer
 
 
+class NegotiationRequestStatusView(viewsets.ModelViewSet):
+    queryset = NegotiationRequestStatus.objects.all()
+    serializer_class = NegotiationRequestStatusSerializer
+
+
+class NegotiationRequestActionsView(JSONResponseMixin, viewsets.ModelViewSet):
+    queryset = NegotiationRequest.objects.all()
+    serializer_class  = NegotiationRequestSerializer
+
+    def partial_update(self, request, **kwargs):
+        seller = get_seller(request)
+        if request.data.get("accepted"):
+            instance = self.get_object()
+            negotiation_request_status = NegotiationRequestStatus.objects.get(status="accepted")
+            instance.accepted = negotiation_request_status
+            instance.save()
+            return self.render_json_response({"response": "success"})
+
+        if request.data.get("rejected"):
+            print("rejecting.")
+            instance = self.get_object()
+            negotiation_request_status = NegotiationRequestStatus.objects.get(status="rejected")
+            instance.accepted = negotiation_request_status
+            instance.save()
+            return self.render_json_response({"response": "success"})
+
+
 class NegotiationRequestView(JSONResponseMixin, viewsets.ModelViewSet):
     queryset = NegotiationRequest.objects.all()
     serializer_class = NegotiationRequestSerializer
 
     @csrf_exempt
-    def post(self, request):
+    def post(self, request, **kwargs):
         print(request.data.get("listing_id"))
         listing_id = request.data.get("listing_id")
         listing_instance = get_inventory_item_instance(listing_id=listing_id)
@@ -419,7 +449,9 @@ class NegotiationRequestView(JSONResponseMixin, viewsets.ModelViewSet):
         negotiation_request.buyer = buyer
         negotiation_request.request_body = request_body
         negotiation_request.seller = seller
-        negotiation_request.accepted = False
+        negotiation_request.accepted = NegotiationRequestStatus.objects.get(
+            status_id=settings.NEGOTIATION_REQUEST_STATUS.get("pending"))
+
         negotiation_request.sent_by = sent_by
         print("{} {} {} {} {}".format(listing_id, buyer, sent_by, request_body, seller))
         try:
@@ -428,6 +460,12 @@ class NegotiationRequestView(JSONResponseMixin, viewsets.ModelViewSet):
         except:
 
             return self.render_json_response({"response": "failed"})
+
+    def update(self, request, **kwargs):
+        return self.render_json_response({"response": "put"})
+
+    def partial_update(self, request, **kwargs):
+        pass
 
 
 class MeNegotiationRequestSent(JSONResponseMixin, viewsets.ModelViewSet):

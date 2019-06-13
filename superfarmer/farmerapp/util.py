@@ -2,6 +2,11 @@ from .models import *
 from superfarmer.settings import MEDIA_ROOT, MEDIA_URL
 from collections import OrderedDict
 import traceback
+from .. import settings
+import hashlib
+import time
+import os
+
 
 def get_user_registration_status(request):
     registration_status = None
@@ -169,13 +174,36 @@ def get_product_category(category=None, product=None):
     return product_category
 
 
-def handle_uploaded_file(f):
-    filepath = "{}/{}".format(MEDIA_ROOT, f.name.replace("/","_"))
+def delete_listing_image(filename=None):
+    serverpath = "{}/{}".format(MEDIA_ROOT, os.path.basename(filename))
+    print("deleting {}".format(serverpath))
+    if os.path.isfile(serverpath):
+        os.remove(serverpath)
+        return True
+
+
+def hashdigest_string(value=None):
+    hs = hashlib.md5(value.encode('utf-8')).hexdigest()
+    return hs
+
+
+def handle_uploaded_file(file=None, seller=None):
+    # The input to hash function must be unique to prevent generating 2 files with same name.
+    # So, the input is personalized to the user, the file name submitted by the user, and the epoch as on that moment.
+    extn = os.path.splitext(file.name)[1]
+
+    hashed_file_name = hashdigest_string("{}_{}_{}".format(seller, file, time.time()))
+    hashed_file_name_ext = "{}{}".format(hashed_file_name, extn)
+    generated_path = "{}/{}".format(MEDIA_ROOT, hashed_file_name_ext)
+
+    print("Writing {} to {}".format(file, generated_path))
+
     try:
-        with open(filepath, 'wb+') as destination:
-            for chunk in f.chunks():
+        with open(generated_path, 'wb+') as destination:
+            for chunk in file.chunks():
                 destination.write(chunk)
-        return "{}{}".format(MEDIA_URL, f)
+
+        return "{}{}".format(MEDIA_URL, hashed_file_name_ext)
     except:
         return "error"
 
@@ -209,19 +237,20 @@ def sanitize_negotiation_request_sent(negotiationRequest=None):
     sanitized["request_body"] = negotiationRequest.get("request_body")
     sanitized["listing_title"] = negotiationRequest.get("listing_title")
     sanitized["sent_on"] = negotiationRequest.get("sent_on")
-    sanitized["accepted"] = "Pending" if negotiationRequest.get("accepted") == False else "Rejected"
+    sanitized["accepted"] = settings.NEGOTIATION_REQUEST_STATUS_IDS.get(negotiationRequest.get("accepted"))
 
     return sanitized
 
 
 def sanitize_negotiation_request_received(negotiationRequest=None):
     sanitized = OrderedDict()
+    sanitized["request_id"] = negotiationRequest.get("request_id")
     sanitized["listing_id"] = negotiationRequest.get("listing_id")
     sanitized["buyer"] = negotiationRequest.get("buyer")
     sanitized["request_body"] = negotiationRequest.get("request_body")
     sanitized["listing_title"] = negotiationRequest.get("listing_title")
     sanitized["sent_on"] = negotiationRequest.get("sent_on")
-    sanitized["accepted"] = "Pending" if negotiationRequest.get("accepted") == False else "Rejected"
+    sanitized["accepted"] = settings.NEGOTIATION_REQUEST_STATUS_IDS.get(negotiationRequest.get("accepted"))
 
     return sanitized
 

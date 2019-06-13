@@ -37,11 +37,13 @@ router.register(r'inventoryitemstatus', InventoryItemStatusView)
 
 router.register(r'inventoryitemaddress', InventoryItemAddressView)
 router.register(r'registrationstatus', RegistrationStatusView)
+router.register(r'negotiationrequeststatus', NegotiationRequestStatusView)
 
 router.register(r'transporter', TransporterView)
 router.register(r'vehicle', VehicleView)
 router.register(r'texttemplate', TextTemplateView)
 router.register(r'playground', PlaygroundView)
+router.register(r'negotiationrequestitem', NegotiationRequestActionsView)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -51,11 +53,10 @@ urlpatterns = [
     url(r'userauth', UserAuth.as_view()),
     url(r'userregistrationstatus', IsRegisteredUser.as_view()),
     url(r'userprofile', UserProfileView.as_view()),
-
     url(r'inventory/(?P<pk>[^/.]+)/$', InventoryItemView.as_view({'get': 'list'})),
     url(r'inventory/$', InventoryView().as_view()),
     url(r'listingsbycategory/(?P<category>[^/.]+)/$', ListingsByCategory().as_view()),
-    url(r'me/listings$', MyListingsView().as_view()),
+    url(r'me/listings$', MyListingsView.as_view({'get': 'list'})),
     url(r'isseller/', IsSeller.as_view()),
     url(r'register-as-seller/', RegisterAsSeller.as_view()),
     url(r'negotiationrequest/$', NegotiationRequestView.as_view({'get': 'list'})),

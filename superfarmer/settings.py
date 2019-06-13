@@ -44,9 +44,16 @@ INSTALLED_APPS = [
     'superfarmer.farmerapp',
     'rest_framework_serializer_extensions',
     'silk',
-    'django_filters'
+    'django_filters',
+    'dynamic_rest',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'dynamic_rest.renderers.DynamicBrowsableAPIRenderer',
+    ],
+}
 MIDDLEWARE = [
 
     'django.middleware.security.SecurityMiddleware',
@@ -188,3 +195,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'uploaded_pictures')
 
 
 BACKEND_MAPPING = { "google" : "google-plus" }
+
+NEGOTIATION_REQUEST_STATUS = {"pending":1 , "accepted":2 , "rejected": 3}
+NEGOTIATION_REQUEST_STATUS_IDS = {v: k for k, v in NEGOTIATION_REQUEST_STATUS.items()}

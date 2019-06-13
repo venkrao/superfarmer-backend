@@ -384,6 +384,12 @@ class TextTemplateSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class NegotiationRequestStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NegotiationRequestStatus
+        fields = '__all__'
+
+
 class NegotiationRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = NegotiationRequest
