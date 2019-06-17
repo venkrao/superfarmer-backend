@@ -29,7 +29,7 @@ class Users(models.Model):
 
     registration_status = models.ForeignKey(RegistrationStatus, on_delete=models.CASCADE)
 
-Users.objects.all()
+
 class UserProfile(models.Model):
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE)
     about_me = models.CharField(max_length=512)

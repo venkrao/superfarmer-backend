@@ -22,8 +22,9 @@ from django.conf import settings
 from django.conf.urls import url, include
 from rest_framework import routers
 from superfarmer.farmerapp.views import *
+from dynamic_rest.routers import DynamicRouter
 
-router = routers.DefaultRouter()
+router = DynamicRouter()
 router.register(r'usercategory', UserCategoryView)
 router.register(r'userstatus', UserStatusView)
 router.register(r'users', UsersView)

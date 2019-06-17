@@ -13,8 +13,13 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework_serializer_extensions.views import SerializerExtensionsAPIViewMixin
 from rest_framework import generics
 from django_filters.rest_framework import DjangoFilterBackend
+
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .. import settings
+from rest_framework import exceptions
+from django.db.models import Q
+
+from dynamic_rest.viewsets import DynamicModelViewSet
 
 class UsersView(viewsets.GenericViewSet):
     def get(self, request):
@@ -392,7 +397,7 @@ class NegotiationRequestStatusView(viewsets.ModelViewSet):
     serializer_class = NegotiationRequestStatusSerializer
 
 
-class NegotiationRequestActionsView(JSONResponseMixin, viewsets.ModelViewSet):
+class NegotiationRequestActionsView(JSONResponseMixin, DynamicModelViewSet):
     queryset = NegotiationRequest.objects.all()
     serializer_class  = NegotiationRequestSerializer
 
