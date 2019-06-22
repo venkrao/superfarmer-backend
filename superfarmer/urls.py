@@ -43,7 +43,9 @@ router.register(r'transporter', TransporterView)
 router.register(r'vehicle', VehicleView)
 router.register(r'texttemplate', TextTemplateView)
 router.register(r'playground', PlaygroundView)
-router.register(r'negotiationrequestitem', NegotiationRequestActionsView)
+router.register(r'playground', PlaygroundView)
+router.register(r'me/profile', Myprofile)
+router.register(r'negotiationrequest', NegotiationRequestView),
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -59,9 +61,9 @@ urlpatterns = [
     url(r'me/listings$', MyListingsView.as_view({'get': 'list'})),
     url(r'isseller/', IsSeller.as_view()),
     url(r'register-as-seller/', RegisterAsSeller.as_view()),
-    url(r'negotiationrequest/$', NegotiationRequestView.as_view({'get': 'list'})),
     url(r'me/negotiationrequests/sent', MeNegotiationRequestSent.as_view({'get': 'list'})),
     url(r'me/negotiationrequests/received', MeNegotiationRequestReceived.as_view({'get': 'list'})),
+    url(r'verify_otp/$', VerifyPhoneOTP.as_view()),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

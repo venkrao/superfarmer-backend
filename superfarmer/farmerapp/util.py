@@ -87,6 +87,15 @@ def get_buyer_name(id=None, buyer_id=None):
         buyer_name = Users.objects.get(buyer_id=buyer_id).name
         return buyer_name
 
+
+def get_user_object(user_id=None):
+    try:
+        user = Users.objects.get(user_id=user_id)
+    except:
+        user = None
+
+    return user
+
 def get_user_as_buyer(user_id=None):
     try:
          buyer = Buyer.objects.get(buyer_id=user_id)
@@ -345,3 +354,59 @@ def get_inventory_item_instance(listing_id=None):
     except:
         print("get_inventory_item_instance: No results for: {}".format(listing_id))
         return None
+
+
+def process_negotiation_request(request_instance=None, treatment=None):
+    found = False
+    for status, status_id in settings.NEGOTIATION_REQUEST_STATUS.items():
+
+        if treatment.get(status, "") != "":
+            found = True
+            request_instance.accepted = NegotiationRequestStatus.objects.get(status_id=status_id)
+            try:
+                request_instance.save()
+                return True
+            except:
+                return False
+    if not found:
+        return False
+
+
+def generate_otp(phone_number=None, user=None):
+    try:
+        generate_otp = PhoneOTP(phone_number=phone_number, otp=123456, user=user)
+        generate_otp.save()
+        return {"verified": "ok"}
+    except:
+        return {"verified": "could_not_generate"}
+
+
+def verify_phone(phone_number=None, user_submitted_otp=None):
+    try:
+        recorded_otp_object = PhoneOTP.objects.get(phone_number=phone_number)
+        recorded_otp = recorded_otp_object.otp
+        print(recorded_otp)
+
+        if int(user_submitted_otp) == int(recorded_otp):
+            recorded_otp_object.delete()
+            return "ok"
+        else:
+            print(recorded_otp)
+            return "invalid_otp"
+    except:
+        return "no_otp_found"
+
+
+def update_phone(phone_number=None, user_profile=None):
+    print(phone_number)
+    user_profile.phone_primary = phone_number
+    try:
+        user_profile.save()
+    except:
+        raise
+
+
+def phone_set_verified(user_profile=None, verified=None):
+    user_profile.phone_verified = verified
+    user_profile.save()
+

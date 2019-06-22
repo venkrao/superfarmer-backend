@@ -29,7 +29,7 @@ class Users(models.Model):
 
     registration_status = models.ForeignKey(RegistrationStatus, on_delete=models.CASCADE)
 
-Users.objects.all()
+
 class UserProfile(models.Model):
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE)
     about_me = models.CharField(max_length=512)
@@ -162,3 +162,16 @@ class NegotiationRequest(models.Model):
     class Meta:
         unique_together = ("listing_id", "buyer")
 
+
+class PhoneOTP(models.Model):
+    phone_number = models.CharField(max_length=32, unique=True)
+    otp = models.IntegerField()
+    generated_at = models.DateTimeField(default=now)
+    user = models.ForeignKey(Users, on_delete=models.CASCADE)
+
+
+class EmailOTP(models.Model):
+    email_address = models.EmailField(max_length=254, unique=True)
+    otp = models.IntegerField()
+    generated_at = models.DateTimeField(default=now)
+    user = models.ForeignKey(Users, on_delete=models.CASCADE)

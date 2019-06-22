@@ -53,9 +53,23 @@ class UserProfileSerializer(SerializerExtensionsMixin, serializers.ModelSerializ
     def validate(self, data):
         pass
 
-
     def update(self, instance, validated_data):
         pass
+
+    def to_representation(self, instance):
+
+        ret = super().to_representation(instance)
+
+        try:
+            otp = PhoneOTP.objects.get(user_id=ret.get("user_id")["user_id"])
+            otp = {"exists": True, "phone_number": otp.phone_number}
+        except:
+            otp = {"exists": False}
+            print("OTP not generated yet.")
+
+        ret["otp"] = otp
+
+        return ret
 
 
 # List of categories the web portal is supporting.
@@ -425,3 +439,8 @@ class MyNegotiationRequestsSerializerReceived(serializers.ModelSerializer):
         ret["listing_title"] = get_listing_title(listing_id=ret["listing_id"])
 
         return sanitize_negotiation_request_received(ret)
+
+class PhoneOTPSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PhoneOTP
+        fields = "__all__"

@@ -18,7 +18,6 @@ from .. import settings
 
 class UsersView(viewsets.GenericViewSet):
     def get(self, request):
-
         pass
 
 
@@ -42,7 +41,6 @@ class UserProfileView(JSONResponseMixin, generics.ListAPIView):
     serializer_class = UserProfileSerializer
 
     def post(self, request, *args, **kwargs):
-
         response_dict = {
             "user_registration": "profile_created"
         }
@@ -53,7 +51,7 @@ class UserProfileView(JSONResponseMixin, generics.ListAPIView):
                                             address=request.data.get("address"), city=request.data.get("city"), state=request.data.get("state"),
                                             postal_code="576200", phone_primary=request.data.get("phone_primary"))
 
-                # TODO:  IMPLEMENT UPDATE, NOT JUST SAVE PROFILE.
+                # TODO: Implement OTP for phone, and email.
                 userprofile.save()
 
                 if (get_user_registration_status(request) != "registered"):
@@ -67,10 +65,31 @@ class UserProfileView(JSONResponseMixin, generics.ListAPIView):
                 }
                 raise
         else:
-            # User profile exists. So, you must update it.
-            response_dict = {
-                "user_registration": "update_succeeded"
-            }
+            # Update profile
+            try:
+                user_id = Users.objects.get(email_address=request.user.email)
+
+                userprofile = UserProfile.objects.get(user_id=user_id)
+                userprofile.about_me=request.data.get("about_me")
+                userprofile.address=request.data.get("address")
+                userprofile.city=request.data.get("city")
+                userprofile.state=request.data.get("state")
+                userprofile.postal_code="576200"
+                if (userprofile.phone_primary != request.data.get("phone_primary")):
+                    otp = generate_otp(request.data.get("phone_primary"), user=user_id)
+                    print(otp)
+                    phone_change = True
+                else:
+                    phone_change = False
+                userprofile.save()
+
+                # User profile exists. So, you must update it.
+                response_dict = {
+                    "phone_number_change": phone_change,
+                    "user_registration": "update_succeeded"
+                }
+            except:
+                raise
 
         return self.render_json_response(context_dict=response_dict)
 
@@ -130,7 +149,6 @@ class InventoryView(JSONResponseMixin, generics.ListCreateAPIView):
     @csrf_exempt
     def post(self, request):
         try:
-
             inventory_item = Inventory()
             inventory_item.listing_title = request.data.get("listing_title")
             inventory_item.inventory_item_status = InventoryItemStatus.objects.get(pk=2)
@@ -465,8 +483,11 @@ class NegotiationRequestView(JSONResponseMixin, viewsets.ModelViewSet):
         return self.render_json_response({"response": "put"})
 
     def partial_update(self, request, **kwargs):
-        pass
-
+        negotiation_request = NegotiationRequest.objects.get(request_id=kwargs.get("pk"))
+        if process_negotiation_request(negotiation_request, self.request.data):
+            return self.render_json_response({"response": "success"})
+        else:
+            return self.render_json_response({"response": "failed"})
 
 class MeNegotiationRequestSent(JSONResponseMixin, viewsets.ModelViewSet):
     queryset = NegotiationRequest.objects.all()
@@ -508,20 +529,58 @@ class MeNegotiationRequestReceived(JSONResponseMixin, viewsets.ModelViewSet):
 
 
 class PlaygroundView(JSONResponseMixin, viewsets.ModelViewSet):
-    queryset = NegotiationRequest.objects.all()
-    serializer_class = MyNegotiationRequestsSerializer
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
+
+    def __init__(self, **kwargs):
+        self.user = None
+        self.request = None
 
     def get_queryset(self):
         try:
-            requesting_user_id = get_user_id_by_name(username=self.request.user)
-            seller = get_seller_from_id(user_id=requesting_user_id)
-            negotiation_requests = NegotiationRequest.objects.filter(
-                Q(seller=seller)
-            )
-            if not negotiation_requests:
-                return self.render_json_response({"response": "failed", "listings": "[]"})
-
-            return negotiation_requests
+            user = get_user(request=self.request)
+            return UserProfile.objects.filter(user_id=user)
         except:
-            # We should keep going if the record doesn't exist.
+            print("something broke")
             pass
+
+    def get(self, request):
+        print("blah")
+
+
+class Myprofile(JSONResponseMixin, viewsets.ModelViewSet):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
+
+    def __init__(self, **kwargs):
+        self.user = None
+        self.request = None
+
+    def get_queryset(self):
+        try:
+            user = get_user(request=self.request)
+            return UserProfile.objects.filter(user_id=user)
+        except:
+            print("something broke")
+            pass
+
+
+class VerifyPhoneOTP(JSONResponseMixin, APIView):
+    queryset = PhoneOTP.objects.all()
+    serializer_class = PhoneOTPSerializer
+
+    def __init__(self):
+        pass
+
+    def post(self, request):
+        phone_number = request.data.get("phone_number")
+        verified = verify_phone(phone_number=phone_number,
+                                user_submitted_otp=request.data.get("otp"))
+        user = get_user(request)
+        user_profile = UserProfile.objects.get(user_id=user)
+        if verified == "ok":
+            update_phone(phone_number=phone_number, user_profile=user_profile)
+            phone_set_verified(user_profile=user_profile, verified=True)
+
+        return self.render_json_response({"verified" : verified, "phone_number":phone_number})
+
