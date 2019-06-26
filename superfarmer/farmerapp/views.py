@@ -16,6 +16,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .. import settings
 
+
 class UsersView(viewsets.GenericViewSet):
     def get(self, request):
         pass
@@ -410,11 +411,12 @@ class NegotiationRequestStatusView(viewsets.ModelViewSet):
     serializer_class = NegotiationRequestStatusSerializer
 
 
-class NegotiationRequestActionsView(JSONResponseMixin, viewsets.ModelViewSet):
+class NegotiationRequestActionsView(JSONResponseMixin, CsrfExemptMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = NegotiationRequest.objects.all()
     serializer_class  = NegotiationRequestSerializer
 
     def partial_update(self, request, **kwargs):
+
         seller = get_seller(request)
         if request.data.get("accepted"):
             instance = self.get_object()
@@ -432,22 +434,25 @@ class NegotiationRequestActionsView(JSONResponseMixin, viewsets.ModelViewSet):
             return self.render_json_response({"response": "success"})
 
 
-class NegotiationRequestView(JSONResponseMixin, viewsets.ModelViewSet):
+class NegotiationRequestView(JSONResponseMixin, CsrfExemptMixin, generics.GenericAPIView):
     queryset = NegotiationRequest.objects.all()
     serializer_class = NegotiationRequestSerializer
 
     @csrf_exempt
-    def post(self, request, **kwargs):
-        print(request.data.get("listing_id"))
-        listing_id = request.data.get("listing_id")
-        listing_instance = get_inventory_item_instance(listing_id=listing_id)
-        buyer = get_request_as_buyer(request)
-        listing_details = get_listing_details(listing_id=listing_id)
-        sent_by = "buyer"
-        request_body = "Hello, lets do business." if request.data.get("request_body") =="" or \
-        request.data.get("request_body") == "undefined" else request.data.get("request_body")
+    def post(self, request):
+        try:
+            print(request.data.get("listing_id"))
+            listing_id = request.data.get("listing_id")
+            listing_instance = get_inventory_item_instance(listing_id=listing_id)
+            buyer = get_request_as_buyer(request)
+            listing_details = get_listing_details(listing_id=listing_id)
+            sent_by = "buyer"
+            request_body = "Hello, lets do business." if request.data.get("request_body") =="" or \
+            request.data.get("request_body") == "undefined" else request.data.get("request_body")
 
-        seller = get_seller_of_listing(listing_id=listing_id)
+            seller = get_seller_of_listing(listing_id=listing_id)
+        except:
+            raise
 
         # Check the need for inserting a new record.
         try:
@@ -462,32 +467,36 @@ class NegotiationRequestView(JSONResponseMixin, viewsets.ModelViewSet):
             # We should keep going if the record doesn't exist.
             pass
 
-        negotiation_request = NegotiationRequest()
-        negotiation_request.listing_id = listing_instance
-        negotiation_request.buyer = buyer
-        negotiation_request.request_body = request_body
-        negotiation_request.seller = seller
-        negotiation_request.accepted = NegotiationRequestStatus.objects.get(
-            status_id=settings.NEGOTIATION_REQUEST_STATUS.get("pending"))
+        try:
+            negotiation_request = NegotiationRequest()
+            negotiation_request.listing_id = listing_instance
+            negotiation_request.buyer = buyer
+            negotiation_request.request_body = request_body
+            negotiation_request.seller = seller
+            negotiation_request.accepted = NegotiationRequestStatus.objects.get(
+                status_id=settings.NEGOTIATION_REQUEST_STATUS.get("pending"))
 
-        negotiation_request.sent_by = sent_by
-        print("{} {} {} {} {}".format(listing_id, buyer, sent_by, request_body, seller))
+            negotiation_request.sent_by = sent_by
+            print("{} {} {} {} {}".format(listing_id, buyer, sent_by, request_body, seller))
+        except:
+            raise
         try:
             negotiation_request.save()
             return self.render_json_response({"response": negotiation_request.pk})
         except:
-
             return self.render_json_response({"response": "failed"})
 
     def update(self, request, **kwargs):
         return self.render_json_response({"response": "put"})
 
     def partial_update(self, request, **kwargs):
+        print("here................")
         negotiation_request = NegotiationRequest.objects.get(request_id=kwargs.get("pk"))
         if process_negotiation_request(negotiation_request, self.request.data):
             return self.render_json_response({"response": "success"})
         else:
             return self.render_json_response({"response": "failed"})
+
 
 class MeNegotiationRequestSent(JSONResponseMixin, viewsets.ModelViewSet):
     queryset = NegotiationRequest.objects.all()
